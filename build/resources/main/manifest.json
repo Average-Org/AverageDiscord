@@ -1,0 +1,18 @@
+{
+  "Group": "Average",
+  "Name": "Discord",
+  "Version": "0.0.1",
+  "Description": "A bridge between Hytale and Discord.",
+  "Authors": [
+    {
+      "Name": "Average (js3 on Hytale)"
+    }
+  ],
+  "Website": "https://github.com/RenderBr/",
+  "ServerVersion": "*",
+  "Dependencies": {},
+  "OptionalDependencies": {},
+  "DisabledByDefault": false,
+  "IncludesAssetPack": true,
+  "Main": "github.renderbr.hytale.AverageDiscord"
+}

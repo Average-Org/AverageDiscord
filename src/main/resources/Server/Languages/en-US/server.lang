@@ -1,0 +1,3 @@
+commands.averagediscord.cmd.desc=The main command for AverageDiscord plugin.
+commands.averagediscord.reload.desc=Reloads the AverageDiscord plugin configuration.
+commands.averagediscord.reload.success=AverageDiscord configuration reloaded successfully.
