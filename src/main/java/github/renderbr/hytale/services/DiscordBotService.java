@@ -19,11 +19,16 @@ import util.ColorUtils;
 
 import javax.annotation.Nonnull;
 import java.util.EnumSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class DiscordBotService extends ListenerAdapter implements EventListener {
     private static DiscordBotService instance;
     private JDA jdaInstance;
     private MessageChannel chatChannel;
+    private ScheduledExecutorService scheduler;
+    private boolean showPlayerCount = false;
 
     EnumSet<GatewayIntent> intents = EnumSet.of(GatewayIntent.GUILD_MESSAGES, GatewayIntent.MESSAGE_CONTENT);
 
@@ -64,9 +69,25 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
         Universe.get().sendMessage(com.hypixel.hytale.server.core.Message.join(ColorUtils.parseColorCodes(configuration.discordIngamePrefix), com.hypixel.hytale.server.core.Message.raw(author.getName() + ": " + message.getContentDisplay())));
     }
 
+    private void updateActivityPlayerCount() {
+        var defaultWorld = Universe.get().getDefaultWorld();
+        if (defaultWorld != null) {
+            int playerCount = defaultWorld.getPlayerCount();
+            var activityCount = Activity.customStatus("Player count: " + playerCount);
+            getInstance().getJdaInstance().getPresence().setActivity(activityCount);
+        }
+    }
+
+    private void updateActivityDefault() {
+        var configuration = ProviderRegistry.discordBridgeConfigProvider.config;
+        var defaultActivity = Activity.customStatus(configuration.botActivityMessage);
+        getInstance().getJdaInstance().getPresence().setActivity(defaultActivity);
+    }
+
     public static void start() throws InterruptedException {
         instance = new DiscordBotService();
         var configuration = ProviderRegistry.discordBridgeConfigProvider.config;
+        instance.scheduler = Executors.newSingleThreadScheduledExecutor();
         instance.jdaInstance = instance.buildNewInstance();
         instance.jdaInstance.awaitReady();
 
@@ -76,9 +97,19 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
         }
 
         instance.jdaInstance.addEventListener(instance);
+
+        instance.scheduler.scheduleAtFixedRate(() -> {
+            if (instance.showPlayerCount) {
+                instance.updateActivityDefault();
+            } else {
+                instance.updateActivityPlayerCount();
+            }
+            instance.showPlayerCount = !instance.showPlayerCount;
+        }, 10, 10, TimeUnit.MINUTES);
     }
 
     public void stop(){
         this.jdaInstance.shutdown();
+        this.scheduler.shutdown();
     }
 }
