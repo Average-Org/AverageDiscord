@@ -21,12 +21,19 @@ A comprehensive Discord-Hytale server bridge plugin that seamlessly connects you
 - Player disconnect notifications with player names
 - Emoji-enhanced messages for better visibility (✅ ☒ ➡️ ⬅️)
 
+### 📡 **Flexible Multi-Channel Output**
+- Route different message types to different Discord channels
+- Support for 5 distinct output types: All, Chat, Join/Leave, Server State, Internal Log
+- Configure multiple channels with different output filters
+- Organize your Discord server with specialized channels for different events
+
 ### ⚙️ **Easy Configuration**
-- JSON-based configuration file
+- JSON-based configuration file with multi-channel support
 - Hot-reload functionality without restarting the server
 - Customizable Discord bot prefix for in-game messages
 - Custom bot activity/status message
 - Support for formatted color codes in Discord messages
+- Optional active player count display
 
 ### 🛠️ **Admin Commands**
 - `/discordbridge reload` - Reloads plugin configuration on-the-fly
@@ -49,12 +56,28 @@ After first run, a `discord_bridge.json` configuration file will be created in y
 
 ```json
 {
-  "config": {
-    "botToken": "your_bot_token_here",
-    "mainChatChannelId": "your_channel_id_here",
-    "botActivityMessage": "Playing Hytale!",
-    "discordIngamePrefix": "&9[Discord] "
-  }
+  "botToken": "your_bot_token_here",
+  "channels": [
+    {
+      "channelId": "1234567890",
+      "type": ["all"]
+    },
+    {
+      "channelId": "2345678901",
+      "type": ["chat"]
+    },
+    {
+      "channelId": "3456789012",
+      "type": ["join_leave", "server_state"]
+    },
+    {
+      "channelId": "4567890123",
+      "type": ["internal_log"]
+    }
+  ],
+  "botActivityMessage": "Playing Hytale!",
+  "discordIngamePrefix": "&9[Discord] ",
+  "showActivePlayerCount": true
 }
 ```
 
@@ -63,9 +86,33 @@ After first run, a `discord_bridge.json` configuration file will be created in y
 | Option | Type | Description | Example |
 |--------|------|-------------|---------|
 | `botToken` | String | Your Discord bot token from the Developer Portal | `"token_here"` |
-| `mainChatChannelId` | String | The Discord channel ID where chat will be bridged | `"1234567890"` |
+| `channels` | Array | Array of channel configurations (see Channel Configuration below) | `[{...}]` |
 | `botActivityMessage` | String | The bot's status message in Discord | `"Playing Hytale!"` |
 | `discordIngamePrefix` | String | Prefix for Discord messages in-game (supports color codes) | `"&9[Discord] "` |
+| `showActivePlayerCount` | Boolean | Show active player count in bot activity status | `true` |
+
+### Channel Configuration
+
+Each channel object in the `channels` array has the following structure:
+
+| Option | Type | Description | Example |
+|--------|------|-------------|---------|
+| `channelId` | String | The Discord channel ID where messages of this type will be sent | `"1234567890"` |
+| `type` | Array of Strings | Output types for this channel (see Output Types below) | `["chat", "join_leave"]` |
+
+### Channel Output Types
+
+Configure which types of messages are sent to each channel:
+
+| Type | Description |
+|------|-------------|
+| `all` | All messages except internal logs (chat, join/leave, server state) |
+| `chat` | In-game player chat messages |
+| `join_leave` | Player join and disconnect notifications |
+| `server_state` | Server startup and shutdown notifications |
+| `internal_log` | Internal plugin logging and debugging messages |
+
+**Note:** The `all` output type does not include `internal_log`. If you want internal logs, you must explicitly add the `internal_log` type to a channel.
 
 ### How to Get Your Bot Token and Channel ID
 
@@ -84,9 +131,22 @@ After first run, a `discord_bridge.json` configuration file will be created in y
 
 ## How It Works
 
+### Message Routing
+The plugin uses a flexible multi-channel system to route different message types to different Discord channels. Each channel is configured with one or more output types that determine what messages it receives.
+
 ### Chat Synchronization
-- **In-Game → Discord**: When a player types in chat, the message is formatted and sent to the configured Discord channel
-- **Discord → In-Game**: When a non-bot user sends a message in the Discord channel, it appears in-game with a customizable prefix
+- **In-Game → Discord**: When a player types in chat, the message is sent to all channels configured with the `chat` or `all` output types
+- **Discord → In-Game**: When a non-bot user sends a message in a channel configured with the `chat` or `all` output types, it appears in-game with a customizable prefix
+
+### Server Events
+The plugin monitors and reports the following events:
+
+- **Player Join**: Sent to channels with `join_leave` or `all` output types
+- **Player Disconnect**: Sent to channels with `join_leave` or `all` output types
+- **Server Startup**: Sent to channels with `server_state` or `all` output types
+- **Server Shutdown**: Sent to channels with `server_state` or `all` output types
+- **Player Chat**: Sent to channels with `chat` or `all` output types
+- **Internal Logs**: Sent only to channels explicitly configured with `internal_log` type
 
 ### Event Listeners
 The plugin registers listeners for:
@@ -98,8 +158,12 @@ The plugin registers listeners for:
 
 ## Dependencies
 
-- **Hytale Server** - The core server implementation
+Please note: The JAR you download is a shadowed JAR that bundles all dependencies, so you do not need to install any additional libraries. These are listed solely for reference and transparency.
+
+- **Hytale Server** - The core server implementation (HytaleServer.jar)
+- **AverageHytaleCore** - Core utilities library
 - **JDA (Java Discord API)** - Version 6.3.0 for Discord bot functionality
+- **Gson** - JSON parsing and serialization for configuration
 - **SLF4J** - Logging implementation
 
 ## Requirements
@@ -125,13 +189,13 @@ Reloads the plugin configuration without requiring a server restart.
 
 ## Color Codes
 
-The `discordIngamePrefix` supports Hytale color codes for customizing message appearance:
+The `discordIngamePrefix` supports Minecraft color codes for customizing message appearance:
 - `&9` - Blue
 - `&a` - Green
 - `&c` - Red
 - `&e` - Yellow
 - `&f` - White
-- And many more standard Minecraft/Hytale color codes
+- And many more standard Minecraft color codes
 
 ## Troubleshooting
 
@@ -145,11 +209,24 @@ The `discordIngamePrefix` supports Hytale color codes for customizing message ap
 - Verify the channel ID is correct (should be numeric)
 - Ensure the bot has access to the channel
 
-### Messages Not Appearing
+### Messages Not Appearing in Discord
 - Check that the bot has permission to send messages in the channel
 - Verify the channel ID in the configuration is correct
+- Ensure the channel is configured with the correct output types (`chat`, `all`, `join_leave`, `server_state`, or `internal_log`)
+- Check that at least one channel is configured with the message type you're trying to send
 - Check server logs for any errors
 - Try using `/discordbridge reload` to refresh the configuration
+
+### Messages Not Appearing In-Game
+- Verify that the Discord bot has permission to send messages in the configured channels
+- Ensure the channel IDs in the configuration are correct
+- Make sure the Discord channel is configured with `chat` or `all` output types to receive Discord messages and relay them in-game
+
+### Configuration Issues
+- Ensure the `discord_bridge.json` file is valid JSON (use a JSON validator if needed)
+- Verify that all required fields are present: `botToken`, `channels`, `botActivityMessage`, `discordIngamePrefix`
+- Check that the `type` array in each channel contains valid output types
+- Try using `/discordbridge reload` after making configuration changes
 
 ### Bot Offline
 - Verify the bot token is valid
@@ -159,18 +236,6 @@ The `discordIngamePrefix` supports Hytale color codes for customizing message ap
 ## Author
 
 **Average** (js3 on Hytale)
-
-## Website
-
-[GitHub Repository](https://github.com/RenderBr/AverageDiscord)
-
-## Support
-
-For issues, feature requests, or contributions, please visit the [GitHub repository](https://github.com/RenderBr/AverageDiscord).
-
-## License
-
-See the repository for license information.
 
 ---
 
