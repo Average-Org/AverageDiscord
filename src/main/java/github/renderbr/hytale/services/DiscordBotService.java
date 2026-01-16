@@ -1,6 +1,7 @@
 package github.renderbr.hytale.services;
 
 import com.hypixel.hytale.server.core.universe.Universe;
+import github.renderbr.hytale.config.obj.ChannelOutputTypes;
 import github.renderbr.hytale.config.obj.DiscordBridgeConfiguration;
 import github.renderbr.hytale.registries.ProviderRegistry;
 import net.dv8tion.jda.api.JDA;
@@ -18,7 +19,10 @@ import org.jetbrains.annotations.NotNull;
 import util.ColorUtils;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -26,9 +30,36 @@ import java.util.concurrent.TimeUnit;
 public class DiscordBotService extends ListenerAdapter implements EventListener {
     private static DiscordBotService instance;
     private JDA jdaInstance;
-    private MessageChannel chatChannel;
+
+    public Map<ChannelOutputTypes, ArrayList<MessageChannel>> channels = new HashMap<>() {
+        {
+            put(ChannelOutputTypes.ALL, new ArrayList<>());
+            put(ChannelOutputTypes.CHAT, new ArrayList<>());
+            put(ChannelOutputTypes.JOIN_LEAVE, new ArrayList<>());
+            put(ChannelOutputTypes.SERVER_STATE, new ArrayList<>());
+            put(ChannelOutputTypes.INTERNAL_LOG, new ArrayList<>());
+        }
+    };
+
+    public ArrayList<MessageChannel> GetOfType(ChannelOutputTypes type) {
+        ArrayList<MessageChannel> channelsOfType = new ArrayList<>();
+
+        // if not internal log, add all channels
+        if (type != ChannelOutputTypes.INTERNAL_LOG) {
+            channelsOfType.addAll(this.channels.get(ChannelOutputTypes.ALL));
+        }
+
+        channelsOfType.addAll(this.channels.get(type));
+        return channelsOfType;
+    }
+
+    public void SendMessageToType(@Nonnull ChannelOutputTypes type, @Nonnull String message) {
+        for (var channel : GetOfType(type)) {
+            channel.sendMessage(message).queue();
+        }
+    }
+
     private ScheduledExecutorService scheduler;
-    private boolean showPlayerCount = false;
 
     EnumSet<GatewayIntent> intents = EnumSet.of(GatewayIntent.GUILD_MESSAGES, GatewayIntent.MESSAGE_CONTENT);
 
@@ -53,25 +84,26 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
         return this.jdaInstance;
     }
 
-    public MessageChannel getChatChannel() {
-        return this.chatChannel;
-    }
-
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent event) {
         var configuration = ProviderRegistry.discordBridgeConfigProvider.config;
         User author = event.getAuthor();
         Message message = event.getMessage();
 
-        if(author.isBot()) return;
-        if(event.getChannel().getIdLong() != Long.parseLong(configuration.mainChatChannelId)) return;
+        if (author.isBot()) return;
+
+        // if the id is not any of the "chat" or "all" channels, return
+        if (!channels.get(ChannelOutputTypes.CHAT).contains(event.getChannel()) &&
+                !channels.get(ChannelOutputTypes.ALL).contains(event.getChannel())) {
+            return;
+        }
 
         Universe.get().sendMessage(com.hypixel.hytale.server.core.Message.join(ColorUtils.parseColorCodes(configuration.discordIngamePrefix), com.hypixel.hytale.server.core.Message.raw(author.getName() + ": " + message.getContentDisplay())));
     }
 
     public void updateActivityPlayerCount() {
         int playerCount = Universe.get().getPlayerCount();
-        var activityCount = Activity.customStatus("Player count: " + playerCount);
+        var activityCount = Activity.customStatus(com.hypixel.hytale.server.core.Message.translation("server.activity.averagediscord.playercount").param("players", playerCount).getAnsiMessage());
         getInstance().getJdaInstance().getPresence().setActivity(activityCount);
     }
 
@@ -88,24 +120,24 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
         instance.jdaInstance = instance.buildNewInstance();
         instance.jdaInstance.awaitReady();
 
-        instance.chatChannel = instance.jdaInstance.getChannelById(MessageChannel.class, configuration.mainChatChannelId);
-        if (instance.chatChannel == null) {
-            throw new IllegalStateException("The provided main chat channel ID is invalid!");
+        for (var channel : configuration.channels) {
+            for (var type : channel.type) {
+                instance.channels.get(type).add(instance.jdaInstance.getTextChannelById(channel.channelId));
+            }
         }
 
         instance.jdaInstance.addEventListener(instance);
 
         instance.scheduler.scheduleAtFixedRate(() -> {
-            if (instance.showPlayerCount) {
+            if (!configuration.showActivePlayerCount) {
                 instance.updateActivityDefault();
             } else {
                 instance.updateActivityPlayerCount();
             }
-            instance.showPlayerCount = !instance.showPlayerCount;
-        }, 10, 10, TimeUnit.MINUTES);
+        }, 1, 10, TimeUnit.MINUTES);
     }
 
-    public void stop(){
+    public void stop() {
         this.jdaInstance.shutdown();
         this.scheduler.shutdown();
     }

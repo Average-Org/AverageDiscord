@@ -7,6 +7,7 @@ import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.event.events.player.PlayerChatEvent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import github.renderbr.hytale.AverageDiscord;
+import github.renderbr.hytale.config.obj.ChannelOutputTypes;
 
 public class ChatListener {
 
@@ -17,18 +18,14 @@ public class ChatListener {
     public static void onPlayerChat(PlayerChatEvent event) {
         if (event.isCancelled()) return;
 
-        if (AverageDiscord.instance.getChatChannel() != null) {
-            var formatter = event.getFormatter();
+        var formatter = event.getFormatter();
+        FormattedMessage formattedMessage = formatter.format(event.getSender(), event.getContent()).getFormattedMessage();
 
-            FormattedMessage formattedMessage = formatter.format(event.getSender(), event.getContent()).getFormattedMessage();
-
-            StringBuilder stringBuilder = new StringBuilder();
-
-            var builtMessage = recursivelyBuildFormattedMessage(formattedMessage);
-            if (!builtMessage.isEmpty()) {
-                AverageDiscord.instance.getChatChannel().sendMessage(builtMessage).queue();
-            }
+        var builtMessage = recursivelyBuildFormattedMessage(formattedMessage);
+        if (!builtMessage.isEmpty()) {
+            AverageDiscord.instance.SendMessageToType(ChannelOutputTypes.CHAT, builtMessage);
         }
+
     }
 
     public static String recursivelyBuildFormattedMessage(FormattedMessage formattedMessage) {
@@ -44,7 +41,7 @@ public class ChatListener {
                 }
             }
 
-            if(msgPart.rawText == null) continue;
+            if (msgPart.rawText == null) continue;
             stringBuilder.append(msgPart.rawText);
         }
         return stringBuilder.toString();
