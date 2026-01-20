@@ -10,6 +10,7 @@ import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.Channel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.EventListener;
@@ -38,6 +39,7 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
             put(ChannelOutputTypes.JOIN_LEAVE, new ArrayList<>());
             put(ChannelOutputTypes.SERVER_STATE, new ArrayList<>());
             put(ChannelOutputTypes.INTERNAL_LOG, new ArrayList<>());
+            put(ChannelOutputTypes.DESC_STATUS, new ArrayList<>());
         }
     };
 
@@ -101,9 +103,27 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
         Universe.get().sendMessage(com.hypixel.hytale.server.core.Message.join(ColorUtils.parseColorCodes(configuration.discordIngamePrefix), com.hypixel.hytale.server.core.Message.raw(author.getName() + ": " + message.getContentDisplay())));
     }
 
+    public void updateDiscordInformation() {
+        DiscordBridgeConfiguration config = ProviderRegistry.discordBridgeConfigProvider.config;
+        if (config.showActivePlayerCount) {
+            updateActivityPlayerCount();
+        } else {
+            updateActivityDefault();
+        }
+        updateChannelDescriptionStatuses();
+    }
+
     public void updateActivityPlayerCount() {
         int playerCount = Universe.get().getPlayerCount();
-        var activityCount = Activity.customStatus(com.hypixel.hytale.server.core.Message.translation("server.activity.averagediscord.playercount").param("players", playerCount).getAnsiMessage());
+
+        var config = ProviderRegistry.discordBridgeConfigProvider.config;
+        var playerCountMessage = com.hypixel.hytale.server.core.Message.translation("server.activity.averagediscord.playercount").param("players", playerCount).getAnsiMessage();
+        var activityCount = Activity.customStatus(playerCountMessage);
+
+        if(!config.botActivityMessage.isEmpty()){
+            activityCount = Activity.customStatus(config.botActivityMessage + " | " + playerCountMessage);
+        }
+
         getInstance().getJdaInstance().getPresence().setActivity(activityCount);
     }
 
@@ -111,6 +131,18 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
         var configuration = ProviderRegistry.discordBridgeConfigProvider.config;
         var defaultActivity = Activity.customStatus(configuration.botActivityMessage);
         getInstance().getJdaInstance().getPresence().setActivity(defaultActivity);
+    }
+
+    public void updateChannelDescriptionStatuses() {
+        GetOfType(ChannelOutputTypes.DESC_STATUS).forEach(channel -> {
+            if (channel.getType().isGuild()) {
+                ((TextChannel) channel).getManager().setTopic(
+                        com.hypixel.hytale.server.core.Message.translation("server.bot.averagediscord.descstatus")
+                                .param("players", Universe.get().getPlayerCount())
+                                .getAnsiMessage()
+                ).queue();
+            }
+        });
     }
 
     public static void start() throws InterruptedException {
@@ -129,11 +161,7 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
         instance.jdaInstance.addEventListener(instance);
 
         instance.scheduler.scheduleAtFixedRate(() -> {
-            if (!configuration.showActivePlayerCount) {
-                instance.updateActivityDefault();
-            } else {
-                instance.updateActivityPlayerCount();
-            }
+            instance.updateDiscordInformation();
         }, 1, 10, TimeUnit.MINUTES);
     }
 

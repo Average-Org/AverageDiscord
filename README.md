@@ -1,3 +1,7 @@
+[![Get quality hosting!](https://i.imgur.com/4rIaoNo.jpeg)](https://billing.kinetichosting.com/aff.php?aff=1261)
+
+> **[Kinetic Hosting](https://billing.kinetichosting.com/aff.php?aff=1261):** Check out my game hosting partner! They offer fast, affordable hosting with excellent customer support!
+
 # AverageDiscord
 
 A comprehensive Discord-Hytale server bridge plugin that seamlessly connects your Hytale game server with Discord, enabling real-time chat synchronization and server status notifications.
@@ -23,7 +27,7 @@ A comprehensive Discord-Hytale server bridge plugin that seamlessly connects you
 
 ### 📡 **Flexible Multi-Channel Output**
 - Route different message types to different Discord channels
-- Support for 5 distinct output types: All, Chat, Join/Leave, Server State, Internal Log
+- Support for 6 distinct output types: All, Chat, Join/Leave, Server State, Internal Log, Desc Status
 - Configure multiple channels with different output filters
 - Organize your Discord server with specialized channels for different events
 
@@ -34,6 +38,10 @@ A comprehensive Discord-Hytale server bridge plugin that seamlessly connects you
 - Custom bot activity/status message
 - Support for formatted color codes in Discord messages
 - Optional active player count display
+
+### 📊 **Dynamic Status Updates**
+- Automatic bot activity updates with current player count every 10 minutes
+- Optional channel description updates with server status information (e.g., player count)
 
 ### 🛠️ **Admin Commands**
 - `/discordbridge reload` - Reloads plugin configuration on-the-fly
@@ -68,7 +76,7 @@ After first run, a `discord_bridge.json` configuration file will be created in y
     },
     {
       "channelId": "3456789012",
-      "type": ["join_leave", "server_state"]
+      "type": ["join_leave", "server_state", "desc_status"]
     },
     {
       "channelId": "4567890123",
@@ -111,6 +119,7 @@ Configure which types of messages are sent to each channel:
 | `join_leave` | Player join and disconnect notifications |
 | `server_state` | Server startup and shutdown notifications |
 | `internal_log` | Internal plugin logging and debugging messages |
+| `desc_status` | Channel description updates with server status information |
 
 **Note:** The `all` output type does not include `internal_log`. If you want internal logs, you must explicitly add the `internal_log` type to a channel.
 
@@ -240,4 +249,3 @@ The `discordIngamePrefix` supports Minecraft color codes for customizing message
 ---
 
 **Note:** This plugin requires a valid Discord bot token and proper configuration to function. Ensure all prerequisites are met before installation.
-

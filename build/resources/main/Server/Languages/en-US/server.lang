@@ -6,3 +6,4 @@ bot.averagediscord.serverstarted=:white_check_mark: Server Started!
 bot.averagediscord.serverstopped=:red_circle: Server Stopped!
 bot.averagediscord.playerjoined=**{player}** has joined the server.
 bot.averagediscord.playerleft=**{player}** has left the server.
+bot.averagediscord.descstatus=The server is online with: {players} players!

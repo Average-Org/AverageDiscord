@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "github.renderbr.hytale"
-version = "1.0-SNAPSHOT"
+version = "0.2.1"
 
 repositories {
     mavenCentral()

@@ -13,5 +13,6 @@ public enum ChannelOutputTypes {
     @SerializedName("join_leave") JOIN_LEAVE,
     @SerializedName("chat") CHAT,
     @SerializedName("server_state") SERVER_STATE,
-    @SerializedName("internal_log") INTERNAL_LOG
+    @SerializedName("internal_log") INTERNAL_LOG,
+    @SerializedName("desc_status") DESC_STATUS
 }

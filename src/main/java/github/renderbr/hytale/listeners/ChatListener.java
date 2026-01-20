@@ -19,31 +19,38 @@ public class ChatListener {
         if (event.isCancelled()) return;
 
         var formatter = event.getFormatter();
+
         FormattedMessage formattedMessage = formatter.format(event.getSender(), event.getContent()).getFormattedMessage();
 
         var builtMessage = recursivelyBuildFormattedMessage(formattedMessage);
-        if (!builtMessage.isEmpty()) {
-            AverageDiscord.instance.SendMessageToType(ChannelOutputTypes.CHAT, builtMessage);
+
+        if (formattedMessage == null || builtMessage.isEmpty()) {
+            // use fallback
+            AverageDiscord.instance.SendMessageToType(ChannelOutputTypes.CHAT, event.getSender().getUsername()
+                    + ": " + event.getContent());
+            return;
         }
 
+        AverageDiscord.instance.SendMessageToType(ChannelOutputTypes.CHAT, builtMessage);
     }
 
-    public static String recursivelyBuildFormattedMessage(FormattedMessage formattedMessage) {
-        StringBuilder stringBuilder = new StringBuilder();
-        if (formattedMessage.children == null) return formattedMessage.rawText;
-        if (formattedMessage.children.length == 0) return "";
+    public static String recursivelyBuildFormattedMessage(FormattedMessage msg) {
+        if (msg == null) return "";
 
-        for (FormattedMessage msgPart : formattedMessage.children) {
-            if (msgPart.children != null) {
-                if (msgPart.children.length > 0) {
-                    stringBuilder.append(recursivelyBuildFormattedMessage(msgPart));
-                    continue;
-                }
-            }
+        StringBuilder sb = new StringBuilder();
 
-            if (msgPart.rawText == null) continue;
-            stringBuilder.append(msgPart.rawText);
+        // add this node's text if it exists
+        if (msg.rawText != null) {
+            sb.append(msg.rawText);
         }
-        return stringBuilder.toString();
+
+        // recursively add all children
+        if (msg.children != null) {
+            for (FormattedMessage child : msg.children) {
+                sb.append(recursivelyBuildFormattedMessage(child));
+            }
+        }
+
+        return sb.toString();
     }
 }

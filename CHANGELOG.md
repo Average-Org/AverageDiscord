@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.0] - 2026-01-18
+
+### ✨ Added
+
+- **DiscordBotService** - New service for enhanced Discord bot management and status updates
+- **Automatic Activity Updates** - Bot activity now updates every 10 minutes with current player count when enabled
+- **Channel Description Updates** - Automatically update designated Discord channel descriptions with server status (e.g., player count)
+- **desc_status Output Type** - New channel output type for routing channel description updates
+- **Enhanced Internal Logging Implementation** - Improved internal logging system for better debugging and monitoring
+
+### 🔄 Changed
+
+- **Bot Status Management** - Improved handling of bot online/offline states and periodic updates
+
 ## [0.1.3] - 2026-01-15
 
 ### ✨ Added
@@ -31,4 +45,3 @@
 ### 📝 Note
 
 **Configuration migration required** - Update your `discord_bridge.json` file to the new format. To do so, simply delete the old config and let it be recreated on startup.
-
