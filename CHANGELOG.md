@@ -1,6 +1,20 @@
 # Changelog
 
-## [0.2.0] - 2026-01-18
+## [0.2.3] - 2026-01-25
+
+### ✨ Added
+
+- **Discord Slash Commands**
+  - `/players` - View currently online players
+  - `/status` - Get detailed server status, including TPS, memory usage, and online players
+- **Command Localization** - Translated command descriptions using Hytale's Message translation system
+
+### 🔄 Changed
+
+- **Command System** - Implemented dynamic Discord slash command registration
+- **Status Command** - Added detailed server vitals reporting with color-coded TPS indication
+
+## [0.2.2] - 2026-01-18
 
 ### ✨ Added
 
@@ -35,7 +49,7 @@
   ```json
   // Old
   "mainChatChannelId": "123456789"
-  
+
   // New
   "channels": [{"channelId": "123456789", "type": ["all"]}]
   ```

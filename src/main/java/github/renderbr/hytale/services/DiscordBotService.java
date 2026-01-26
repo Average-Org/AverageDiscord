@@ -1,29 +1,31 @@
 package github.renderbr.hytale.services;
 
 import com.hypixel.hytale.server.core.universe.Universe;
+import github.renderbr.hytale.commands.discord.CommandHandler;
 import github.renderbr.hytale.config.obj.ChannelOutputTypes;
 import github.renderbr.hytale.config.obj.DiscordBridgeConfiguration;
+import github.renderbr.hytale.listeners.ServerStateListener;
 import github.renderbr.hytale.registries.ProviderRegistry;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.Channel;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.EventListener;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import org.jetbrains.annotations.NotNull;
 import util.ColorUtils;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -120,7 +122,7 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
         var playerCountMessage = com.hypixel.hytale.server.core.Message.translation("server.activity.averagediscord.playercount").param("players", playerCount).getAnsiMessage();
         var activityCount = Activity.customStatus(playerCountMessage);
 
-        if(!config.botActivityMessage.isEmpty()){
+        if (!config.botActivityMessage.isEmpty()) {
             activityCount = Activity.customStatus(config.botActivityMessage + " | " + playerCountMessage);
         }
 
@@ -145,24 +147,40 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
         });
     }
 
-    public static void start() throws InterruptedException {
+    public static DiscordBotService start() throws InterruptedException {
         instance = new DiscordBotService();
         var configuration = ProviderRegistry.discordBridgeConfigProvider.config;
         instance.scheduler = Executors.newSingleThreadScheduledExecutor();
         instance.jdaInstance = instance.buildNewInstance();
         instance.jdaInstance.awaitReady();
 
+        Guild guild = null;
         for (var channel : configuration.channels) {
             for (var type : channel.type) {
-                instance.channels.get(type).add(instance.jdaInstance.getTextChannelById(channel.channelId));
+                var textChannel = instance.jdaInstance.getTextChannelById(channel.channelId);
+
+                instance.channels.get(type).add(textChannel);
+
+                if (textChannel != null) {
+                    guild = textChannel.getGuild();
+                }
             }
         }
 
         instance.jdaInstance.addEventListener(instance);
+        var cmdHandler = new CommandHandler();
+
+        if (guild != null) {
+            cmdHandler.registerCommands(guild);
+        }
+
+        instance.jdaInstance.addEventListener(cmdHandler);
 
         instance.scheduler.scheduleAtFixedRate(() -> {
             instance.updateDiscordInformation();
-        }, 1, 10, TimeUnit.MINUTES);
+        }, 2, 10, TimeUnit.MINUTES);
+
+        return instance;
     }
 
     public void stop() {

@@ -3,6 +3,7 @@ package github.renderbr.hytale;
 
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
+import github.renderbr.hytale.commands.discord.CommandHandler;
 import github.renderbr.hytale.registries.CommandRegistry;
 import github.renderbr.hytale.registries.ListenerRegistry;
 import github.renderbr.hytale.registries.ProviderRegistry;
@@ -25,14 +26,6 @@ public class AverageDiscord extends JavaPlugin {
 
         CommandRegistry.registerCommands(this.getCommandRegistry());
         ProviderRegistry.registerProviders();
-
-        try {
-            DiscordBotService.start();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        instance = DiscordBotService.getInstance();
         ListenerRegistry.registerListeners(this.getEventRegistry());
     }
 }

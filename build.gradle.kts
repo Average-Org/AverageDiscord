@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "github.renderbr.hytale"
-version = "0.2.1"
+version = "0.2.3"
 
 repositories {
     mavenCentral()
@@ -17,7 +17,6 @@ dependencies {
     compileOnly(files("libs/HytaleServer.jar"))
 
     implementation(files("libs/AverageHytaleCore.jar"))
-    implementation("org.slf4j:slf4j-nop:2.0.17")
     implementation("net.dv8tion:JDA:6.3.0") {}
 
 }

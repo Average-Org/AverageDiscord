@@ -1,9 +1,31 @@
 commands.averagediscord.cmd.desc=The main command for AverageDiscord plugin.
 commands.averagediscord.reload.desc=Reloads the AverageDiscord plugin configuration.
 commands.averagediscord.reload.success=AverageDiscord configuration reloaded successfully.
+
+# Bot Activity & Events
 activity.averagediscord.playercount=Player count: {players}
 bot.averagediscord.serverstarted=:white_check_mark: Server Started!
 bot.averagediscord.serverstopped=:red_circle: Server Stopped!
 bot.averagediscord.playerjoined=**{player}** has joined the server.
 bot.averagediscord.playerleft=**{player}** has left the server.
 bot.averagediscord.descstatus=The server is online with: {players} players!
+
+# Status Command
+bot.averagediscord.commands.status.desc=View real-time server performance and player vitals.
+
+# Players Online Command
+bot.averagediscord.commands.playersonline.desc=Shows the number of players currently online.
+bot.averagediscord.commands.playersonline.noplayers=There are currently no players online.
+bot.averagediscord.commands.playersonline.players=There are currently **{players} players** online: {playerlist}
+bot.averagediscord.commands.playersonline.oneplayer=There is currently **1 player** online: {player}
+
+# Embed Headers & Labels
+bot.averagediscord.commands.status.title=🛡️ {servername} Status
+bot.averagediscord.commands.status.vitals=Vitals
+bot.averagediscord.commands.status.network=Network
+bot.averagediscord.commands.status.version=Hytale Version: {version}
+
+# Metric Formatting
+bot.averagediscord.commands.status.tps=• **TPS:** `{tps}`
+bot.averagediscord.commands.status.ticktime=• **Tick Time:** `{ms}ms`
+bot.averagediscord.commands.status.memory=• **Memory:** `{used}/{max} MB`
