@@ -14,5 +14,6 @@ public enum ChannelOutputTypes {
     @SerializedName("chat") CHAT,
     @SerializedName("server_state") SERVER_STATE,
     @SerializedName("internal_log") INTERNAL_LOG,
-    @SerializedName("desc_status") DESC_STATUS
+    @SerializedName("desc_status") DESC_STATUS,
+    @SerializedName("player_death") PLAYER_DEATH
 }

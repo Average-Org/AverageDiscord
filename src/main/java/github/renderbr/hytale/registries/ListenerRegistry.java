@@ -8,9 +8,12 @@ import github.renderbr.hytale.listeners.ServerStateListener;
 import github.renderbr.hytale.services.DiscordBotService;
 
 public class ListenerRegistry {
-    public static void registerListeners(EventRegistry eventRegistry){
+    public static void registerListeners(AverageDiscord adPlugin){
+        var eventRegistry = adPlugin.getEventRegistry();
+        var entityStoreRegistry = adPlugin.getEntityStoreRegistry();
+
         ServerStateListener.register(eventRegistry);
         ChatListener.registerChatListeners(eventRegistry);
-        PlayerStateListener.register(eventRegistry);
+        PlayerStateListener.register(eventRegistry, entityStoreRegistry);
     }
 }

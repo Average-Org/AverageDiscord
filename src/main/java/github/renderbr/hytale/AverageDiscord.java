@@ -26,6 +26,6 @@ public class AverageDiscord extends JavaPlugin {
 
         CommandRegistry.registerCommands(this.getCommandRegistry());
         ProviderRegistry.registerProviders();
-        ListenerRegistry.registerListeners(this.getEventRegistry());
+        ListenerRegistry.registerListeners(this);
     }
 }

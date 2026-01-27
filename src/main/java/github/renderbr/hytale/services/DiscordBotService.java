@@ -42,6 +42,7 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
             put(ChannelOutputTypes.SERVER_STATE, new ArrayList<>());
             put(ChannelOutputTypes.INTERNAL_LOG, new ArrayList<>());
             put(ChannelOutputTypes.DESC_STATUS, new ArrayList<>());
+            put(ChannelOutputTypes.PLAYER_DEATH, new ArrayList<>());
         }
     };
 
