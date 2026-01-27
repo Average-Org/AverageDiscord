@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.4] - 2026-01-27
+
+### ✨ Added
+
+- **Player Death Event Support** - Track and report player death events in Discord
+
+### 🔄 Changed
+
+- **Project Dependencies** - Updated dependencies to improve overall stability and performance
+- **Improved player join/leave tracking** - Players who go to different worlds within the universe will no longer be considered as leaving and joining the server again.
+
+
 ## [0.2.3] - 2026-01-25
 
 ### ✨ Added

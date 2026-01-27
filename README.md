@@ -10,13 +10,11 @@ A comprehensive Discord-Hytale server bridge plugin that seamlessly connects you
 
 **AverageDiscord** is a powerful plugin designed for Hytale servers that establishes a two-way communication bridge between your in-game chat and a designated Discord channel. Monitor server activity, receive player join/leave notifications, and allow Discord members to chat with players on your Hytale server—all in real-time.
 
-## What's new in 0.2.3
+## What's new in 0.2.4
 
-- Added dynamic Discord slash commands:
-  - `/players` to view currently online players
-  - `/status` to get detailed server status, including TPS, memory usage, and online players
-- Enhanced command system with localized command descriptions
-- Implemented detailed server vitals reporting with color-coded TPS indication
+- Added support for player death event tracking
+- Improved player join/leave tracking. Players who go to different worlds within the universe will no longer be considered as leaving and joining the server again.
+- Updated project dependencies to improve performance and JAR size
 
 ## Features
 
