@@ -10,4 +10,6 @@ public class DiscordBridgeConfiguration {
 
     public String botActivityMessage = "Playing Hytale!";
     public Boolean showActivePlayerCount = true;
+    public Boolean stripLinksInChat = true;
+    public Boolean stripPingsInChat = true;
 }

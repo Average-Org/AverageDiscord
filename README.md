@@ -10,11 +10,9 @@ A comprehensive Discord-Hytale server bridge plugin that seamlessly connects you
 
 **AverageDiscord** is a powerful plugin designed for Hytale servers that establishes a two-way communication bridge between your in-game chat and a designated Discord channel. Monitor server activity, receive player join/leave notifications, and allow Discord members to chat with players on your Hytale server—all in real-time.
 
-## What's new in 0.2.4
+## What's new in 0.2.5
 
-- Added support for player death event tracking
-- Improved player join/leave tracking. Players who go to different worlds within the universe will no longer be considered as leaving and joining the server again.
-- Updated project dependencies to improve performance and JAR size
+- Link & Ping stripping when sending messages to Discord, these are configurable.
 
 ## Features
 
@@ -99,7 +97,9 @@ After first run, a `discord_bridge.json` configuration file will be created in y
   ],
   "botActivityMessage": "Playing Hytale!",
   "discordIngamePrefix": "&9[Discord] ",
-  "showActivePlayerCount": true
+  "showActivePlayerCount": true,
+  "stripLinksInChat": true,
+  "stripPingsInChat": true
 }
 ```
 
@@ -112,6 +112,8 @@ After first run, a `discord_bridge.json` configuration file will be created in y
 | `botActivityMessage` | String | The bot's status message in Discord | `"Playing Hytale!"` |
 | `discordIngamePrefix` | String | Prefix for Discord messages in-game (supports color codes) | `"&9[Discord] "` |
 | `showActivePlayerCount` | Boolean | Show active player count in bot activity status | `true` |
+| `stripLinksInChat` | Boolean | Strip Discord links from in-game chat messages | `true` |
+| `stripPingsInChat` | Boolean | Strip Discord mentions from in-game chat messages | `true` |
 
 ### Channel Configuration
 

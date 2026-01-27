@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.5] - 2026-01-28
+
+### ✨ Added
+
+- **Link Stripping** - Adds a new configuration option: `stripLinksInChat`. This is set to true by default. When enabled, attempted links in chat messages will be stripped from the message before being sent to Discord.
+- **Ping Stripping** - Adds a new configuration option: `stripPingsInChat`. This is set to true by default. When enabled, attempted Discord mentions in chat messages will be stripped from the message before being sent to Discord.
+
 ## [0.2.4] - 2026-01-27
 
 ### ✨ Added
