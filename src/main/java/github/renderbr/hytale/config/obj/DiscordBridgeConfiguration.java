@@ -6,6 +6,7 @@ public class DiscordBridgeConfiguration {
     public DiscordChannelConfiguration[] channels = new DiscordChannelConfiguration[]{
             new DiscordChannelConfiguration("channel_id_here", new ChannelOutputTypes[]{ChannelOutputTypes.ALL})
     };
+
     public String discordIngamePrefix = "&9[Discord] ";
 
     public String botActivityMessage = "Playing Hytale!";

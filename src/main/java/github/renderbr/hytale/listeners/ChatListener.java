@@ -3,13 +3,11 @@ package github.renderbr.hytale.listeners;
 import com.hypixel.hytale.event.EventPriority;
 import com.hypixel.hytale.event.EventRegistry;
 import com.hypixel.hytale.protocol.FormattedMessage;
-import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.event.events.player.PlayerChatEvent;
-import com.hypixel.hytale.server.core.universe.PlayerRef;
 import github.renderbr.hytale.AverageDiscord;
-import github.renderbr.hytale.config.DiscordBridgeConfigurationProvider;
 import github.renderbr.hytale.config.obj.ChannelOutputTypes;
 import github.renderbr.hytale.registries.ProviderRegistry;
+import github.renderbr.hytale.services.DiscordBotService;
 
 public class ChatListener {
 
@@ -18,7 +16,10 @@ public class ChatListener {
     }
 
     public static void onPlayerChat(PlayerChatEvent event) {
+        if(!DiscordBotService.isRunning()) return;
         if (event.isCancelled()) return;
+
+        var service = DiscordBotService.getInstance();
 
         var formatter = event.getFormatter();
 
@@ -31,12 +32,12 @@ public class ChatListener {
             var strippedText = stripTextForForbiddenContent(event.getContent());
             var message = "**" + event.getSender().getUsername() + "**: " + strippedText;
 
-            AverageDiscord.instance.SendMessageToType(ChannelOutputTypes.CHAT, message);
+            service.sendMessageAppropriately(ChannelOutputTypes.CHAT, message);
             return;
         }
 
         var strippedText = stripTextForForbiddenContent(builtMessage);
-        AverageDiscord.instance.SendMessageToType(ChannelOutputTypes.CHAT, strippedText);
+        service.sendMessageAppropriately(ChannelOutputTypes.CHAT, strippedText);
     }
 
     public static String stripTextForForbiddenContent(String text) {

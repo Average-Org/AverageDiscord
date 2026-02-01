@@ -1,6 +1,7 @@
 commands.averagediscord.cmd.desc=The main command for AverageDiscord plugin.
 commands.averagediscord.reload.desc=Reloads the AverageDiscord plugin configuration.
 commands.averagediscord.reload.success=AverageDiscord configuration reloaded successfully.
+commands.averagediscord.reload.failure=AverageDiscord configuration could not be reloaded due to: {ex}
 
 # Bot Activity & Events
 activity.averagediscord.playercount=Player count: {players}
@@ -30,3 +31,7 @@ bot.averagediscord.commands.status.version=Hytale Version: {version}
 bot.averagediscord.commands.status.tps=• **TPS:** `{tps}`
 bot.averagediscord.commands.status.ticktime=• **Tick Time:** `{ms}ms`
 bot.averagediscord.commands.status.memory=• **Memory:** `{used}/{max} MB`
+
+error.averagediscord.tokennotfound=No Discord bot token found in environment variables or configuration. Please add it under the environment variable: HYTALE_DISCORD_TOKEN, or add it to the config under "bot_token'.
+error.averagediscord.nochannels=No channels have been configured, bot not starting.
+error.averagediscord.failedtostart=Your Discord bot failed to start: {ex}

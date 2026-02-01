@@ -31,18 +31,13 @@ public class DiscordBridgeCommand extends AbstractCommandCollection {
         protected void executeSync(@NotNull CommandContext commandContext) {
             ProviderRegistry.discordBridgeConfigProvider.syncLoad();
 
-            if (AverageDiscord.instance.getJdaInstance() != null) {
-                AverageDiscord.instance.stop();
-            }
+            DiscordBotService.restart().thenAccept(_ -> {
+                commandContext.sendMessage(Message.translation("server.commands.averagediscord.reload.success").color(Color.GREEN.brighter()));
+            }).exceptionally(ex -> {
+                commandContext.sendMessage(Message.translation("server.commands.averagediscord.reload.failure").param("ex", ex.getLocalizedMessage()).color(Color.RED));
+                return null;
+            });
 
-            try {
-                DiscordBotService.start();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-
-            AverageDiscord.instance = DiscordBotService.getInstance();
-            commandContext.sendMessage(Message.translation("server.commands.averagediscord.reload.success").color(Color.GREEN.brighter()));
         }
     }
 }

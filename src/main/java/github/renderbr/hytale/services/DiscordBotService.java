@@ -1,101 +1,192 @@
 package github.renderbr.hytale.services;
 
+import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.universe.Universe;
+import github.renderbr.hytale.AverageDiscord;
 import github.renderbr.hytale.commands.discord.CommandHandler;
 import github.renderbr.hytale.config.obj.ChannelOutputTypes;
-import github.renderbr.hytale.config.obj.DiscordBridgeConfiguration;
-import github.renderbr.hytale.listeners.ServerStateListener;
 import github.renderbr.hytale.registries.ProviderRegistry;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.User;
-import net.dv8tion.jda.api.entities.channel.Channel;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
-import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.EventListener;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import org.jetbrains.annotations.NotNull;
 import util.ColorUtils;
 
 import javax.annotation.Nonnull;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Level;
 
 public class DiscordBotService extends ListenerAdapter implements EventListener {
-    private static DiscordBotService instance;
-    private JDA jdaInstance;
+    private static final Set<GatewayIntent> INTENTS =
+            Collections.unmodifiableSet(EnumSet.of(GatewayIntent.GUILD_MESSAGES, GatewayIntent.MESSAGE_CONTENT));
 
-    public Map<ChannelOutputTypes, ArrayList<MessageChannel>> channels = new HashMap<>() {
-        {
-            put(ChannelOutputTypes.ALL, new ArrayList<>());
-            put(ChannelOutputTypes.CHAT, new ArrayList<>());
-            put(ChannelOutputTypes.JOIN_LEAVE, new ArrayList<>());
-            put(ChannelOutputTypes.SERVER_STATE, new ArrayList<>());
-            put(ChannelOutputTypes.INTERNAL_LOG, new ArrayList<>());
-            put(ChannelOutputTypes.DESC_STATUS, new ArrayList<>());
-            put(ChannelOutputTypes.PLAYER_DEATH, new ArrayList<>());
-        }
-    };
+    private static final AtomicReference<DiscordBotService> instance = new AtomicReference<>();
 
-    public ArrayList<MessageChannel> GetOfType(ChannelOutputTypes type) {
-        ArrayList<MessageChannel> channelsOfType = new ArrayList<>();
-
-        // if not internal log, add all channels
-        if (type != ChannelOutputTypes.INTERNAL_LOG) {
-            channelsOfType.addAll(this.channels.get(ChannelOutputTypes.ALL));
+    public static CompletableFuture<DiscordBotService> init() {
+        if (instance.get() != null) {
+            return CompletableFuture.completedFuture(instance.get());
         }
 
-        channelsOfType.addAll(this.channels.get(type));
-        return channelsOfType;
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                DiscordBotService service = new DiscordBotService();
+                instance.set(service);
+                AverageDiscord.LOGGER.at(Level.INFO).log("Discord Bot started successfully.");
+                return service;
+            } catch (Exception e) {
+                AverageDiscord.LOGGER.at(Level.SEVERE).log("Failed to start Discord bot", e);
+                throw new CompletionException(e);
+            }
+        });
     }
 
-    public void SendMessageToType(@Nonnull ChannelOutputTypes type, @Nonnull String message) {
-        for (var channel : GetOfType(type)) {
-            channel.sendMessage(message).queue();
-        }
+    public static CompletableFuture<DiscordBotService> restart() {
+        return CompletableFuture.runAsync(() -> {
+            AverageDiscord.LOGGER.at(Level.INFO).log("Stopping Discord Bot for restart...");
+
+            DiscordBotService currentService = instance.get();
+            if (currentService != null) {
+                currentService.stop();
+            }
+
+            instance.set(null);
+
+        }).thenCompose(v -> init());
     }
 
-    private ScheduledExecutorService scheduler;
+    public static boolean isRunning() {
+        var service = instance.get();
 
-    EnumSet<GatewayIntent> intents = EnumSet.of(GatewayIntent.GUILD_MESSAGES, GatewayIntent.MESSAGE_CONTENT);
+        if (service == null) {
+            return false;
+        }
 
-    private DiscordBotService() {
-
+        var jda = service.getJdaInstance();
+        return jda != null && jda.getStatus() == JDA.Status.CONNECTED;
     }
 
     public static DiscordBotService getInstance() {
-        return instance;
+        return instance.get();
     }
 
-    protected JDA buildNewInstance() {
+    private final Map<ChannelOutputTypes, List<MessageChannel>> channels = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService scheduler;
+    private final JDA jdaInstance;
+
+    private DiscordBotService() throws InterruptedException {
+        for (var type : ChannelOutputTypes.values()) {
+            channels.put(type, new CopyOnWriteArrayList<>());
+        }
+
+        var configuration = ProviderRegistry.discordBridgeConfigProvider.config;
+
+        if (configuration.channels.length == 0) {
+            throw new IllegalStateException(Message.translation("server.error.discordbotservice.nochannels").getAnsiMessage());
+        }
+
+        jdaInstance = buildNewInstance(AverageDiscord.getDiscordBotToken());
+        scheduler = Executors.newSingleThreadScheduledExecutor();
+        jdaInstance.awaitReady();
+
+        Guild guild = null;
+        for (var channel : configuration.channels) {
+            var textChannel = jdaInstance.getTextChannelById(channel.channelId);
+            if (textChannel == null) continue;
+
+            for (var type : channel.type) {
+                channels.get(type).add(textChannel);
+            }
+
+            guild = textChannel.getGuild();
+        }
+
+        jdaInstance.addEventListener(this);
+        var cmdHandler = new CommandHandler();
+
+        if (guild != null) {
+            cmdHandler.registerCommands(guild);
+        }
+
+        jdaInstance.addEventListener(cmdHandler);
+        scheduler.scheduleAtFixedRate(this::updateDiscordInformation, 2, 10, TimeUnit.MINUTES);
+    }
+
+    /**
+     * @param type The type of message to send.
+     * @return A list of channels where it is appropriate to send the given type of message.
+     */
+    public List<MessageChannel> getAppropriateChannels(ChannelOutputTypes type) {
+        if (type != ChannelOutputTypes.INTERNAL_LOG) {
+            return this.channels.get(ChannelOutputTypes.ALL);
+        }
+
+        return this.channels.get(type);
+    }
+
+    /**
+     * Sends a message to all channels where it is appropriate to send the given type of message.
+     *
+     * @param type    The type of message to send.
+     * @param message The message to send.
+     */
+    public void sendMessageAppropriately(@Nonnull ChannelOutputTypes type, @Nonnull String message) {
+        getAppropriateChannels(type).forEach(channel ->
+                channel.sendMessage(message).queue(
+                        _ -> {},
+                        error -> AverageDiscord.LOGGER.at(Level.SEVERE).log("Failed to send to channel " + channel.getId(), error)
+                )
+        );
+    }
+
+    public void sendMessageAppropriately(@Nonnull ChannelOutputTypes type, @Nonnull MessageEmbed message) {
+        getAppropriateChannels(type).forEach(channel ->
+                channel.sendMessageEmbeds(message).queue(
+                        _ -> {},
+                        error -> AverageDiscord.LOGGER.at(Level.SEVERE).log("Failed to send to channel " + channel.getId(), error)
+                )
+        );
+    }
+
+    /**
+     * Builds a new instance of JDA.
+     *
+     * @return A new instance of JDA.
+     */
+    protected JDA buildNewInstance(String token) {
         var configuration = ProviderRegistry.discordBridgeConfigProvider.config;
 
         return JDABuilder
-                .createLight(ProviderRegistry.discordBridgeConfigProvider.config.botToken, intents)
+                .createLight(token, INTENTS)
                 .setActivity(Activity.customStatus(configuration.botActivityMessage))
                 .build();
     }
 
+    /**
+     * Gets the current instance of JDA.
+     *
+     * @return The current instance of JDA.
+     */
     public JDA getJdaInstance() {
         return this.jdaInstance;
     }
 
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent event) {
-        var configuration = ProviderRegistry.discordBridgeConfigProvider.config;
-        User author = event.getAuthor();
-        Message message = event.getMessage();
+        if (event.getAuthor().isBot() || event.getMessage().isWebhookMessage()) return;
 
-        if (author.isBot()) return;
+        var configuration = ProviderRegistry.discordBridgeConfigProvider.config;
+        var author = event.getAuthor();
+        var message = event.getMessage();
 
         // if the id is not any of the "chat" or "all" channels, return
         if (!channels.get(ChannelOutputTypes.CHAT).contains(event.getChannel()) &&
@@ -103,89 +194,69 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
             return;
         }
 
-        Universe.get().sendMessage(com.hypixel.hytale.server.core.Message.join(ColorUtils.parseColorCodes(configuration.discordIngamePrefix), com.hypixel.hytale.server.core.Message.raw(author.getName() + ": " + message.getContentDisplay())));
+        Universe.get()
+                .sendMessage(com.hypixel.hytale.server.core.Message.join(
+                        ColorUtils.parseColorCodes(configuration.discordIngamePrefix),
+                        com.hypixel.hytale.server.core.Message.raw(author.getName() + ": " + message.getContentDisplay())));
     }
 
+    /**
+     * Updates the Discord bot activity and channel descriptions if appropriate.
+     */
     public void updateDiscordInformation() {
-        DiscordBridgeConfiguration config = ProviderRegistry.discordBridgeConfigProvider.config;
+        var jda = getJdaInstance();
+        if (jda == null || jda.getStatus() != JDA.Status.CONNECTED) return;
+
+        var config = ProviderRegistry.discordBridgeConfigProvider.config;
+        var presence = jda.getPresence();
+
+        Activity status;
+
         if (config.showActivePlayerCount) {
-            updateActivityPlayerCount();
+            int playerCount = Universe.get().getPlayerCount();
+
+            var playerCountMessage = com.hypixel.hytale.server.core.Message.translation("server.activity.averagediscord.playercount")
+                    .param("players", playerCount).getAnsiMessage();
+
+            status = config.botActivityMessage.isEmpty()
+                    ? Activity.customStatus(playerCountMessage) : Activity.customStatus(config.botActivityMessage + " | " + playerCountMessage);
         } else {
-            updateActivityDefault();
+            status = Activity.customStatus(config.botActivityMessage);
         }
+
+        presence.setActivity(status);
         updateChannelDescriptionStatuses();
     }
 
-    public void updateActivityPlayerCount() {
-        int playerCount = Universe.get().getPlayerCount();
-
-        var config = ProviderRegistry.discordBridgeConfigProvider.config;
-        var playerCountMessage = com.hypixel.hytale.server.core.Message.translation("server.activity.averagediscord.playercount").param("players", playerCount).getAnsiMessage();
-        var activityCount = Activity.customStatus(playerCountMessage);
-
-        if (!config.botActivityMessage.isEmpty()) {
-            activityCount = Activity.customStatus(config.botActivityMessage + " | " + playerCountMessage);
-        }
-
-        getInstance().getJdaInstance().getPresence().setActivity(activityCount);
-    }
-
-    private void updateActivityDefault() {
-        var configuration = ProviderRegistry.discordBridgeConfigProvider.config;
-        var defaultActivity = Activity.customStatus(configuration.botActivityMessage);
-        getInstance().getJdaInstance().getPresence().setActivity(defaultActivity);
-    }
-
+    /**
+     * Updates channel descriptions where appropritae
+     */
     public void updateChannelDescriptionStatuses() {
-        GetOfType(ChannelOutputTypes.DESC_STATUS).forEach(channel -> {
-            if (channel.getType().isGuild()) {
-                ((TextChannel) channel).getManager().setTopic(
-                        com.hypixel.hytale.server.core.Message.translation("server.bot.averagediscord.descstatus")
-                                .param("players", Universe.get().getPlayerCount())
-                                .getAnsiMessage()
-                ).queue();
-            }
-        });
-    }
+        int playerCount = Universe.get().getPlayerCount();
+        String topic = Message.translation("server.bot.averagediscord.descstatus")
+                .param("players", playerCount)
+                .getAnsiMessage();
 
-    public static DiscordBotService start() throws InterruptedException {
-        instance = new DiscordBotService();
-        var configuration = ProviderRegistry.discordBridgeConfigProvider.config;
-        instance.scheduler = Executors.newSingleThreadScheduledExecutor();
-        instance.jdaInstance = instance.buildNewInstance();
-        instance.jdaInstance.awaitReady();
-
-        Guild guild = null;
-        for (var channel : configuration.channels) {
-            for (var type : channel.type) {
-                var textChannel = instance.jdaInstance.getTextChannelById(channel.channelId);
-
-                instance.channels.get(type).add(textChannel);
-
-                if (textChannel != null) {
-                    guild = textChannel.getGuild();
+        getAppropriateChannels(ChannelOutputTypes.DESC_STATUS).forEach(channel -> {
+            if (channel instanceof TextChannel textChannel) {
+                if (!topic.equals(textChannel.getTopic())) {
+                    textChannel.getManager().setTopic(topic).queue(
+                            null,
+                            err -> AverageDiscord.LOGGER.at(Level.WARNING).log("Rate limited or failed to update topic", err)
+                    );
                 }
             }
-        }
-
-        instance.jdaInstance.addEventListener(instance);
-        var cmdHandler = new CommandHandler();
-
-        if (guild != null) {
-            cmdHandler.registerCommands(guild);
-        }
-
-        instance.jdaInstance.addEventListener(cmdHandler);
-
-        instance.scheduler.scheduleAtFixedRate(() -> {
-            instance.updateDiscordInformation();
-        }, 2, 10, TimeUnit.MINUTES);
-
-        return instance;
+        });
     }
 
     public void stop() {
         this.jdaInstance.shutdown();
         this.scheduler.shutdown();
+        try {
+            this.scheduler.awaitTermination(5, TimeUnit.SECONDS);
+            instance.set(null);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
