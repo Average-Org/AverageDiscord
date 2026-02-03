@@ -2,8 +2,8 @@ package github.renderbr.hytale.commands.discord;
 
 import com.hypixel.hytale.server.core.HytaleServer;
 import com.hypixel.hytale.server.core.Message;
+import com.hypixel.hytale.server.core.console.ConsoleModule;
 import com.hypixel.hytale.server.core.console.ConsoleSender;
-import github.renderbr.hytale.AverageDiscord;
 import github.renderbr.hytale.config.obj.ChannelOutputTypes;
 import github.renderbr.hytale.services.DiscordBotService;
 import net.dv8tion.jda.api.Permission;
@@ -17,10 +17,6 @@ import java.util.concurrent.CompletionException;
 public class ExecuteIngameCommand implements IDiscordCommand {
     @Override
     public void execute(SlashCommandInteractionEvent event) {
-        if (event.isGuildCommand()) {
-            return;
-        }
-
         if (!DiscordBotService.getInstance().getAppropriateChannels(ChannelOutputTypes.ALL).contains(event.getChannel())) {
             return;
         }
@@ -42,18 +38,23 @@ public class ExecuteIngameCommand implements IDiscordCommand {
 
         var command = commandArg.getAsString();
 
+        event.deferReply().queue();
+        
         // try execute as server
         HytaleServer.get().getCommandManager().handleCommand(ConsoleSender.INSTANCE, command)
                 .whenComplete((result, error) -> {
+                    var hook = event.getHook();
+
                     if (error != null) {
                         Throwable actualError = (error instanceof CompletionException) ? error.getCause() : error;
 
-                        event.reply(Message.translation("server.bot.averagediscord.commands.execute.error")
+
+                        hook.sendMessage(Message.translation("server.bot.averagediscord.commands.execute.error")
                                 .param("error", actualError.getMessage()).getAnsiMessage()).queue();
                         return;
                     }
 
-                    event.reply(Message.translation("server.bot.averagediscord.commands.execute.success")
+                    hook.sendMessage(Message.translation("server.bot.averagediscord.commands.execute.success")
                             .getAnsiMessage()).queue();
                 });
 

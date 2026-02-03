@@ -1,5 +1,7 @@
 package github.renderbr.hytale.services;
 
+import com.hypixel.hytale.logger.backend.HytaleConsole;
+import com.hypixel.hytale.server.core.HytaleServer;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.universe.Universe;
 import github.renderbr.hytale.AverageDiscord;
@@ -21,6 +23,7 @@ import org.jetbrains.annotations.NotNull;
 import util.ColorUtils;
 
 import javax.annotation.Nonnull;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -139,19 +142,28 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
      * @param type    The type of message to send.
      * @param message The message to send.
      */
-    public void sendMessageAppropriately(@Nonnull ChannelOutputTypes type, @Nonnull String message) {
-        getAppropriateChannels(type).forEach(channel ->
-                channel.sendMessage(message).queue(
-                        _ -> {},
-                        error -> AverageDiscord.LOGGER.at(Level.SEVERE).log("Failed to send to channel " + channel.getId(), error)
-                )
+    public void sendMessageAppropriately(@Nonnull ChannelOutputTypes type, @Nonnull String message, Boolean block) {
+        getAppropriateChannels(type).forEach(channel -> {
+                    var msg = channel.sendMessage(message);
+
+                    if (block) {
+                        msg.complete();
+                    } else {
+                        msg.queue();
+                    }
+                }
         );
+    }
+
+    public void sendMessageAppropriately(@Nonnull ChannelOutputTypes type, @Nonnull String message) {
+        sendMessageAppropriately(type, message, false);
     }
 
     public void sendMessageAppropriately(@Nonnull ChannelOutputTypes type, @Nonnull MessageEmbed message) {
         getAppropriateChannels(type).forEach(channel ->
                 channel.sendMessageEmbeds(message).queue(
-                        _ -> {},
+                        _ -> {
+                        },
                         error -> AverageDiscord.LOGGER.at(Level.SEVERE).log("Failed to send to channel " + channel.getId(), error)
                 )
         );
@@ -250,13 +262,28 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
     }
 
     public void stop() {
-        this.jdaInstance.shutdown();
         this.scheduler.shutdown();
+
         try {
-            this.scheduler.awaitTermination(5, TimeUnit.SECONDS);
-            instance.set(null);
+            if (!scheduler.awaitTermination(3, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow();
+            }
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            scheduler.shutdownNow();
+            Thread.currentThread().interrupt();
         }
+
+        this.jdaInstance.shutdown();
+
+        try {
+            if (!jdaInstance.awaitShutdown(Duration.ofSeconds(5))) {
+                jdaInstance.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            jdaInstance.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+
+        instance.set(null);
     }
 }
