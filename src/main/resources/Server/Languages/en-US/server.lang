@@ -33,7 +33,9 @@ bot.averagediscord.commands.status.ticktime=• **Tick Time:** `{ms}ms`
 bot.averagediscord.commands.status.memory=• **Memory:** `{used}/{max} MB`
 
 # Execute Command
-bot.averagediscord.commands.execute.error=While running that command, we encountered an error: {ex}
+bot.averagediscord.commands.execute.desc=Execute a command on the server from Discord.
+bot.averagediscord.commands.execute.command=The command to execute on the server.
+bot.averagediscord.commands.execute.error=While running that command, we encountered an error: {error}
 bot.averagediscord.commands.execute.success=Command executed successfully!
 
 error.averagediscord.tokennotfound=No Discord bot token found in environment variables or configuration. Please add it under the environment variable: HYTALE_DISCORD_TOKEN, or add it to the config under "bot_token'.

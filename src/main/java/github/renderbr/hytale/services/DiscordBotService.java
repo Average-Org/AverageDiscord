@@ -94,7 +94,7 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
         var configuration = ProviderRegistry.discordBridgeConfigProvider.config;
 
         if (configuration.channels.length == 0) {
-            throw new IllegalStateException(Message.translation("server.error.discordbotservice.nochannels").getAnsiMessage());
+            throw new IllegalStateException(Message.translation("server.error.averagediscord.nochannels").getAnsiMessage());
         }
 
         jdaInstance = buildNewInstance(AverageDiscord.getDiscordBotToken());

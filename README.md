@@ -4,69 +4,33 @@
 
 # AverageDiscord
 
-A comprehensive Discord-Hytale server bridge plugin that seamlessly connects your Hytale game server with Discord, enabling real-time chat synchronization and server status notifications.
-
-## Overview
-
-**AverageDiscord** is a powerful plugin designed for Hytale servers that establishes a two-way communication bridge between your in-game chat and a designated Discord channel. Monitor server activity, receive player join/leave notifications, and allow Discord members to chat with players on your Hytale server—all in real-time.
-
-## What's new in 0.2.5
-
-- Link & Ping stripping when sending messages to Discord, these are configurable.
+A Discord bridge plugin for Hytale servers. Forwards chat messages, player join/leave events, and server status between the game server and Discord channels.
 
 ## Features
 
-### 🔗 **Bi-Directional Chat Bridge**
-- Real-time synchronization between in-game chat and Discord
-- Formatted message support with proper text parsing
-- Discord messages sent to the designated channel appear in-game
-- In-game chat messages are forwarded to Discord with player names
+- Chat synchronization (in-game ↔ Discord)
+- Player join/leave notifications
+- Server startup/shutdown notifications
+- Player death notifications
+- Multi-channel message routing (assign different event types to different Discord channels)
+- Discord slash commands: `/players`, `/status`, `/execute`
+- Hot-reload configuration
+- Bot status updates with player count every 10 minutes
 
-### 📢 **Server Status Notifications**
-- Automatic server startup notification
-- Automatic server shutdown notification
-- Player join notifications with player names
-- Player disconnect notifications with player names
-- Emoji-enhanced messages for better visibility (✅ ☒ ➡️ ⬅️)
+## Version 0.3.0 Changes
 
-### 📡 **Flexible Multi-Channel Output**
-- Route different message types to different Discord channels
-- Support for 6 distinct output types: All, Chat, Join/Leave, Server State, Internal Log, Desc Status
-- Configure multiple channels with different output filters
-- Organize your Discord server with specialized channels for different events
+- Added `/execute` command to run server console commands from Discord (admin only)
+- Added `HYTALE_DISCORD_TOKEN` environment variable support for bot token
+- Improved async command processing and error handling
 
-### 🤖 **Discord Slash Commands**
-- `/players` - View the list of currently online players
-- `/status` - Get a comprehensive server status report
-  - Server TPS (Ticks Per Second)
-  - Memory usage
-  - Online player list
-  - Server version
+## Setup
 
-### ⚙️ **Easy Configuration**
-- JSON-based configuration file with multi-channel support
-- Hot-reload functionality without restarting the server
-- Customizable Discord bot prefix for in-game messages
-- Custom bot activity/status message
-- Support for formatted color codes in Discord messages
-- Optional active player count display
-
-### 📊 **Dynamic Status Updates**
-- Automatic bot activity updates with current player count every 10 minutes
-- Optional channel description updates with server status information (e.g., player count)
-
-### 🛠️ **Admin Commands**
-- `/discordbridge reload` - Reloads plugin configuration on-the-fly
-- Aliases: `/gm`, `/agm`, `/groupman`
-- Graceful config synchronization
-
-## Installation
-
-1. **Download** the latest AverageDiscord JAR file
-2. **Place** it in your Hytale server's plugins folder
-3. **Create a Discord bot** at [Discord Developer Portal](https://discord.com/developers/applications)
-4. **Configure** the plugin (see Configuration section below)
-5. **Restart** your Hytale server or use `/discordbridge reload`
+1. Download the latest JAR from releases
+2. Place it in your Hytale server's plugins folder
+3. Create a Discord bot at [Discord Developer Portal](https://discord.com/developers/applications)
+4. Start the server to generate `discord_bridge.json`
+5. Edit the config with your bot token and channel IDs
+6. Run `/discordbridge reload` or restart the server
 
 ## Configuration
 
@@ -105,40 +69,36 @@ After first run, a `discord_bridge.json` configuration file will be created in y
 
 ### Configuration Options
 
-| Option | Type | Description | Example |
-|--------|------|-------------|---------|
-| `botToken` | String | Your Discord bot token from the Developer Portal | `"token_here"` |
-| `channels` | Array | Array of channel configurations (see Channel Configuration below) | `[{...}]` |
-| `botActivityMessage` | String | The bot's status message in Discord | `"Playing Hytale!"` |
-| `discordIngamePrefix` | String | Prefix for Discord messages in-game (supports color codes) | `"&9[Discord] "` |
-| `showActivePlayerCount` | Boolean | Show active player count in bot activity status | `true` |
-| `stripLinksInChat` | Boolean | Strip Discord links from in-game chat messages | `true` |
-| `stripPingsInChat` | Boolean | Strip Discord mentions from in-game chat messages | `true` |
+| Option | Type | Description |
+|--------|------|-------------|
+| `botToken` | String | Discord bot token (or use `HYTALE_DISCORD_TOKEN` env var) |
+| `channels` | Array | Channel routing config |
+| `botActivityMessage` | String | Bot status text in Discord |
+| `discordIngamePrefix` | String | Prefix for Discord messages in-game (supports color codes) |
+| `showActivePlayerCount` | Boolean | Show player count in bot status |
+| `stripLinksInChat` | Boolean | Remove links from in-game chat before sending to Discord |
+| `stripPingsInChat` | Boolean | Remove mentions from in-game chat before sending to Discord |
 
 ### Channel Configuration
 
-Each channel object in the `channels` array has the following structure:
+| Field | Description |
+|-------|-------------|
+| `channelId` | Discord channel ID |
+| `type` | Array of output types (e.g., `["chat", "join_leave"]`) |
 
-| Option | Type | Description | Example |
-|--------|------|-------------|---------|
-| `channelId` | String | The Discord channel ID where messages of this type will be sent | `"1234567890"` |
-| `type` | Array of Strings | Output types for this channel (see Output Types below) | `["chat", "join_leave"]` |
+### Output Types
 
-### Channel Output Types
+| Type | Sends |
+|------|-------|
+| `chat` | In-game chat messages |
+| `join_leave` | Player joins and leaves |
+| `server_state` | Server startup and shutdown |
+| `player_death` | Player death messages |
+| `internal_log` | Plugin logs |
+| `desc_status` | Channel topic updates with player count |
+| `all` | All of the above except `internal_log` |
 
-Configure which types of messages are sent to each channel:
-
-| Type | Description |
-|------|-------------|
-| `all` | All messages except internal logs |
-| `chat` | In-game player chat messages |
-| `join_leave` | Player join and disconnect notifications |
-| `server_state` | Server startup and shutdown notifications |
-| `internal_log` | Internal plugin logging and debugging messages |
-| `desc_status` | Channel description updates with server status information |
-| `player_death` | Player death notifications |
-
-**Note:** The `all` output type does not include `internal_log`. If you want internal logs, you must explicitly add the `internal_log` type to a channel.
+Note: `internal_log` is not included in `all` and must be explicitly configured if you want it.
 
 ### How to Get Your Bot Token and Channel ID
 
@@ -157,52 +117,37 @@ Configure which types of messages are sent to each channel:
 
 ## How It Works
 
-### Message Routing
-The plugin uses a flexible multi-channel system to route different message types to different Discord channels. Each channel is configured with one or more output types that determine what messages it receives.
+Messages are routed to Discord channels based on their output type. Each channel in the config specifies which types it receives.
 
-### Chat Synchronization
-- **In-Game → Discord**: When a player types in chat, the message is sent to all channels configured with the `chat` or `all` output types
-- **Discord → In-Game**: When a non-bot user sends a message in a channel configured with the `chat` or `all` output types, it appears in-game with a customizable prefix
+**In-Game → Discord**: Chat messages are sent to channels with `chat` or `all` types.
 
-### Server Events
-The plugin monitors and reports the following events:
+**Discord → In-Game**: Messages in channels with `chat` or `all` types are sent to the game with a configurable prefix.
 
-- **Player Join**: Sent to channels with `join_leave` or `all` output types
-- **Player Disconnect**: Sent to channels with `join_leave` or `all` output types
-- **Server Startup**: Sent to channels with `server_state` or `all` output types
-- **Server Shutdown**: Sent to channels with `server_state` or `all` output types
-- **Player Chat**: Sent to channels with `chat` or `all` output types
-- **Internal Logs**: Sent only to channels explicitly configured with `internal_log` type
-- **Channel Description Dynamic Status**: Sent only to channels explicitly configured with `desc_status` type or with `all` output type
-- **Player Death**: Sent to channels with `player_death` or `all` output types
-
-### Event Listeners
-The plugin registers listeners for:
-- `PlayerChatEvent` - Forwards in-game chat to Discord
-- `PlayerReadyEvent` - Notifies Discord when players join
-- `PlayerDisconnectEvent` - Notifies Discord when players leave
-- `AllWorldsLoadedEvent` - Notifies Discord when the server starts
-- `ShutdownEvent` - Notifies Discord when the server stops
+**Events and their output types:**
+- `chat` - In-game chat messages
+- `join_leave` - Player join/disconnect
+- `server_state` - Server startup/shutdown
+- `player_death` - Player deaths
+- `internal_log` - Plugin logs
+- `desc_status` - Channel topic updates with player count
+- `all` - All of the above except `internal_log`
 
 ## Dependencies
 
-Please note: The JAR you download is a shadowed JAR that bundles all dependencies, so you do not need to install any additional libraries. These are listed solely for reference and transparency.
+The JAR bundles all dependencies. No additional libraries needed.
 
-- **Hytale Server** - The core server implementation (HytaleServer.jar)
-- **AverageHytaleCore** - Core utilities library
-- **JDA (Java Discord API)** - Version 6.3.0 for Discord bot functionality
-- **Gson** - JSON parsing and serialization for configuration
-- **SLF4J** - Logging implementation
+- Hytale Server
+- AverageHytaleCore
+- JDA 6.3.0
+- Gson
+- SLF4J
 
 ## Requirements
 
-- Java 11 or higher
-- Active Hytale server installation
-- Discord bot with proper permissions:
-  - `View Channels`
-  - `Send Messages`
-  - `Read Message History`
-  - Intents: `GUILD_MESSAGES`, `MESSAGE_CONTENT`
+- Java 11+
+- Hytale server
+- Discord bot token with permissions: `View Channels`, `Send Messages`, `Read Message History`
+- Bot intents: `GUILD_MESSAGES`, `MESSAGE_CONTENT`
 
 ## Commands
 
@@ -215,15 +160,16 @@ Reloads the plugin configuration without requiring a server restart.
 
 **Permission:** Server admin/operator
 
+### `/execute`
+Run server console commands from Discord. Requires Discord administrator role and must be run in a channel with the `all` output type configured.
+
+**Usage:** `/execute command:<command>`
+
+**Example:** `/execute command:say Hello from Discord!`
+
 ## Color Codes
 
-The `discordIngamePrefix` supports Minecraft color codes for customizing message appearance:
-- `&9` - Blue
-- `&a` - Green
-- `&c` - Red
-- `&e` - Yellow
-- `&f` - White
-- And many more standard Minecraft color codes
+The `discordIngamePrefix` supports Minecraft color codes: `&9` (blue), `&a` (green), `&c` (red), `&e` (yellow), `&f` (white), and other standard codes.
 
 ## Troubleshooting
 
@@ -263,8 +209,4 @@ The `discordIngamePrefix` supports Minecraft color codes for customizing message
 
 ## Author
 
-**Average** (js3 on Hytale)
-
----
-
-**Note:** This plugin requires a valid Discord bot token and proper configuration to function. Ensure all prerequisites are met before installation.
+Average (js3 on Hytale)

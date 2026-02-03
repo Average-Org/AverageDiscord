@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.3.0] - 2026-02-01
+
+### ✨ Added
+
+- `/execute` command - Discord admins can now run server console commands from Discord
+- SLF4J logging provider for JDA integration with Hytale's native logger
+- `HYTALE_DISCORD_TOKEN` environment variable support for bot token configuration
+
+### 🔄 Changed
+
+- Bot initialization is now async with better error handling
+- `/discordbridge reload` now uses async restart flow
+- Discord commands are pre-registered and defer replies to prevent timeouts
+- Build config improved to resolve SLF4J conflicts and relocate dependencies
+
+### 🐛 Fixed
+
+- SLF4J module conflicts
+- Bot token validation (rejects placeholder values)
+
 ## [0.2.5] - 2026-01-28
 
 ### ✨ Added
