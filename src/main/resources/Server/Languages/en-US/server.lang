@@ -5,7 +5,6 @@ commands.averagediscord.reload.failure=AverageDiscord configuration could not be
 
 # Bot Activity & Events
 activity.averagediscord.playercount=Player count: {players}
-bot.averagediscord.serverstopped=:red_circle: Server Stopped!
 bot.averagediscord.playerjoined=**{player}** has joined the server.
 bot.averagediscord.playerleft=**{player}** has left the server.
 bot.averagediscord.playerdeath=**{player}** has died.
@@ -14,8 +13,12 @@ bot.averagediscord.descstatus=The server is online with: {players} players!
 # Server Started Event
 bot.averagediscord.serverstarted=:white_check_mark: Server Started!
 bot.averagediscord.serverstarted.desc1=The server is now online and accepting players.
-bot.averagediscord.serverstarted.desc2=**Universe:** {universe}
+bot.averagediscord.serverstarted.desc2=**Default World:** {world}
 bot.averagediscord.serverstarted.desc3=**Version:** {version}
+
+# Server Stopped Event
+bot.averagediscord.serverstopped=:red_circle: Server Stopped!
+bot.averagediscord.serverstopped.desc1=The server is now offline and not accepting players.
 
 # Status Command
 bot.averagediscord.commands.status.desc=View real-time server performance and player vitals.

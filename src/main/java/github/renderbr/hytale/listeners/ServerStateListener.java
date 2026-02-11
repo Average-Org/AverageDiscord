@@ -14,7 +14,6 @@ import github.renderbr.hytale.config.obj.ChannelOutputTypes;
 import github.renderbr.hytale.models.log.EventDrivenLogList;
 import github.renderbr.hytale.services.DiscordBotService;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 
 import java.awt.*;
 import java.util.Objects;
@@ -24,11 +23,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ServerStateListener {
-    private static final Pattern BROKEN_ANSI_PATTERN = Pattern.compile("(?:\u001b\\[m|(?<!\u001b)\\[m|(?<!\u001b)\\[(?=\\d{1,2}(?:;\\d{1,2})?m))");
+    private static final Pattern BROKEN_ANSI_PATTERN = Pattern.compile("\u001b\\[m|(?<!\u001b)\\[(?:m|(?=\\d{1,2}(?:;\\d{1,2})?m))");
+    private static final int MAX_LOG_MESSAGE_LENGTH = 1750;
 
     private static volatile boolean isShuttingDown = false;
-    public static HytaleLogFormatter formatter;
-    private static EventDrivenLogList logOutput;
+    public static volatile HytaleLogFormatter formatter;
+    private static volatile EventDrivenLogList logOutput;
 
     public static void register(EventRegistry eventRegistry) {
         eventRegistry.registerGlobal(BootEvent.class, ServerStateListener::onServerStart);
@@ -37,7 +37,6 @@ public class ServerStateListener {
 
     public static void onServerStart(BootEvent event) {
         DiscordBotService.init().thenAccept(instance -> {
-
             logOutput = new EventDrivenLogList();
             formatter = new HytaleLogFormatter(() -> true);
 
@@ -50,7 +49,7 @@ public class ServerStateListener {
 
             eb.appendDescription(Message.translation("server.bot.averagediscord.serverstarted.desc1").getAnsiMessage());
             eb.appendDescription("\n");
-            eb.appendDescription(Message.translation("server.bot.averagediscord.serverstarted.desc2").param("universe", Universe.get().getName()).getAnsiMessage());
+            eb.appendDescription(Message.translation("server.bot.averagediscord.serverstarted.desc2").param("world", Objects.requireNonNull(Universe.get().getDefaultWorld()).getName()).getAnsiMessage());
 
             var version = ManifestUtil.getImplementationVersion();
             if (version != null) {
@@ -66,7 +65,6 @@ public class ServerStateListener {
             AverageDiscord.LOGGER.at(Level.SEVERE).log(Message.translation("server.error.averagediscord.failedtostart").param("ex", ex.getLocalizedMessage()).getAnsiMessage());
             return null;
         });
-
     }
 
     public static void onServerStop(ShutdownEvent event) {
@@ -76,8 +74,13 @@ public class ServerStateListener {
             return;
         }
 
-        DiscordBotService.getInstance().sendMessageAppropriately(ChannelOutputTypes.SERVER_STATE,
-                Message.translation("server.bot.averagediscord.serverstopped").getAnsiMessage(), true);
+        EmbedBuilder eb = new EmbedBuilder();
+        eb.setTitle(Message.translation("server.bot.averagediscord.serverstopped").getAnsiMessage());
+        eb.setDescription(Message.translation("server.bot.averagediscord.serverstopped.desc1").getAnsiMessage());
+        eb.setColor(Color.red);
+        eb.setTimestamp(java.time.Instant.now());
+
+        DiscordBotService.getInstance().sendMessageAppropriately(ChannelOutputTypes.SERVER_STATE, eb.build());
 
         logOutput.removeListener(ServerStateListener::onLogReceived);
         HytaleLoggerBackend.unsubscribe(logOutput);
@@ -85,26 +88,26 @@ public class ServerStateListener {
     }
 
     public static String repairAnsi(String brokenLog) {
-        if (brokenLog == null || brokenLog.isEmpty()) {
+        if (brokenLog == null || brokenLog.isEmpty() || brokenLog.indexOf('[') == -1) {
             return brokenLog;
         }
 
-        StringBuilder sb = new StringBuilder(brokenLog.length());
         Matcher m = BROKEN_ANSI_PATTERN.matcher(brokenLog);
+        if (!m.find()) {
+            return brokenLog;
+        }
 
-        while (m.find()) {
-            String match = m.group();
-            // Map the found broken sequence to the fixed one
-            if (match.equals("\u001b[m") || match.equals("[m")) {
+        StringBuilder sb = new StringBuilder(brokenLog.length() + 16);
+        do {
+            // m.end() - m.start() is 3 for \u001b[m, 2 for [m, and 1 for [
+            if (m.end() - m.start() > 1) {
                 m.appendReplacement(sb, "\u001b[0m");
             } else {
-                // This handles the cases like "[31m" -> "\u001b[31m"
                 m.appendReplacement(sb, "\u001b[");
             }
-        }
-        m.appendTail(sb);
+        } while (m.find());
 
-        return sb.toString();
+        return m.appendTail(sb).toString();
     }
 
     public static void onLogReceived(LogRecord record) {
@@ -120,14 +123,14 @@ public class ServerStateListener {
             if (formattedMessage.isEmpty()) return;
 
             // limit to 1750 characters to prevent crash
-            if (formattedMessage.length() > 1750) {
-                formattedMessage = formattedMessage.substring(0, 1750) + "... (truncated)";
+            if (formattedMessage.length() > MAX_LOG_MESSAGE_LENGTH) {
+                formattedMessage = formattedMessage.substring(0, MAX_LOG_MESSAGE_LENGTH) + "... (truncated)";
             }
 
             formattedMessage = repairAnsi(formattedMessage);
             DiscordBotService.getInstance().sendMessageAppropriately(ChannelOutputTypes.INTERNAL_LOG, "```ansi\n" + formattedMessage + "```");
         } catch (Exception e) {
-
+            // Log record processing failed
         }
     }
 }

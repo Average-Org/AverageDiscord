@@ -2,7 +2,6 @@ package github.renderbr.hytale.listeners;
 
 import com.hypixel.hytale.event.EventPriority;
 import com.hypixel.hytale.event.EventRegistry;
-import com.hypixel.hytale.protocol.FormattedMessage;
 import com.hypixel.hytale.server.core.event.events.player.PlayerChatEvent;
 import github.renderbr.hytale.config.obj.ChannelOutputTypes;
 import github.renderbr.hytale.services.DiscordBotService;
@@ -10,34 +9,37 @@ import github.renderbr.hytale.services.DiscordBotService;
 import static github.renderbr.hytale.models.chat.ChatFormatter.recursivelyBuildFormattedMessage;
 import static github.renderbr.hytale.models.chat.ChatFormatter.stripTextForForbiddenContent;
 
+/**
+ * Listener for player chat events to bridge them to Discord.
+ */
 public class ChatListener {
 
+    /**
+     * Registers chat listeners to the event registry.
+     * @param eventRegistry The event registry to register with.
+     */
     public static void registerChatListeners(EventRegistry eventRegistry) {
         eventRegistry.registerGlobal(EventPriority.LATE, PlayerChatEvent.class, ChatListener::onPlayerChat);
     }
 
+    /**
+     * Handles player chat events and sends them to Discord.
+     * @param event The player chat event.
+     */
     public static void onPlayerChat(PlayerChatEvent event) {
-        if (!DiscordBotService.isRunning()) return;
-        if (event.isCancelled()) return;
+        if (event.isCancelled() || !DiscordBotService.isRunning()) return;
 
-        var service = DiscordBotService.getInstance();
+        var formatted = event.getFormatter().format(event.getSender(), event.getContent()).getFormattedMessage();
+        var message = recursivelyBuildFormattedMessage(formatted);
 
-        var formatter = event.getFormatter();
-
-        FormattedMessage formattedMessage = formatter.format(event.getSender(), event.getContent()).getFormattedMessage();
-
-        var builtMessage = recursivelyBuildFormattedMessage(formattedMessage);
-
-        if (formattedMessage == null || builtMessage.isEmpty()) {
-            // use fallback
-            var strippedText = stripTextForForbiddenContent(event.getContent());
-            var message = "**" + event.getSender().getUsername() + "**: " + strippedText;
-
-            service.sendMessageAppropriately(ChannelOutputTypes.CHAT, message);
-            return;
+        // Fallback if formatting fails or is empty
+        if (message.isEmpty()) {
+            message = "**" + event.getSender().getUsername() + "**: " + event.getContent();
         }
 
-        var strippedText = stripTextForForbiddenContent(builtMessage);
-        service.sendMessageAppropriately(ChannelOutputTypes.CHAT, strippedText);
+        DiscordBotService.getInstance().sendMessageAppropriately(
+            ChannelOutputTypes.CHAT, 
+            stripTextForForbiddenContent(message)
+        );
     }
 }

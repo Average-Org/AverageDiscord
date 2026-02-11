@@ -36,7 +36,7 @@ public class AverageDiscord extends JavaPlugin {
     public static String getDiscordBotToken() {
         var token = Optional.ofNullable(System.getenv(DISCORD_BOT_TOKEN_ENV));
 
-        if(token.isEmpty()){
+        if (token.isEmpty()) {
             token = Optional.of(ProviderRegistry.discordBridgeConfigProvider.getConfig().botToken);
         }
 
