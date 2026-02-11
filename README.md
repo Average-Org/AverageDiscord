@@ -16,12 +16,14 @@ A Discord bridge plugin for Hytale servers. Forwards chat messages, player join/
 - Discord slash commands: `/players`, `/status`, `/execute`
 - Hot-reload configuration
 - Bot status updates with player count every 10 minutes
+- **Log Batching**: Buffers internal logs to prevent Discord rate limits
+- **Intelligent ANSI Handling**: Support for 256-color and RGB sequences in server logs
 
-## Version 0.3.0 Changes
+## Latest Changes (0.3.1)
 
-- Added `/execute` command to run server console commands from Discord (admin only)
-- Added `HYTALE_DISCORD_TOKEN` environment variable support for bot token
-- Improved async command processing and error handling
+- **Intelligent ANSI Translation**: Automatically maps complex 256-color and RGB sequences to Discord-compatible ANSI colors
+- **Log Batching**: Buffers and batches server logs to significantly reduce rate-limiting issues
+- **Performance Optimizations**: Improved player tracking and message routing for better server efficiency
 
 ## Setup
 
@@ -144,7 +146,7 @@ The JAR bundles all dependencies. No additional libraries needed.
 
 ## Requirements
 
-- Java 11+
+- **Java 25+**
 - Hytale server
 - Discord bot token with permissions: `View Channels`, `Send Messages`, `Read Message History`
 - Bot intents: `GUILD_MESSAGES`, `MESSAGE_CONTENT`

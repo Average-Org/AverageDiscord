@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.1] - 2026-02-10
+
+### ✨ Added
+
+- **Intelligent ANSI Translation** - Server logs in Discord now support 256-color and RGB sequences by automatically mapping them to the nearest Discord-compatible color.
+- **Log Batching** - Internal logs are now buffered and sent in batches, preventing Discord rate limits during high-activity periods.
+
+### 🔄 Changed
+
+- **Performance Optimizations** - Rewrote player tracking and message routing logic for significantly better server performance.
+- **Enhanced Chat Relay** - Improved chat formatting with more robust fallbacks and more reliable message sanitization.
+
+### 🐛 Fixed
+
+- Fixed an issue where complex ANSI codes would incorrectly render as background colors in Discord.
+- Fixed a bug where players could occasionally trigger duplicate join messages.
+
 ## [0.3.0] - 2026-02-01
 
 ### ✨ Added
