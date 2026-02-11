@@ -1,51 +1,59 @@
 package github.renderbr.hytale.models.chat;
 
 import com.hypixel.hytale.protocol.FormattedMessage;
+import github.renderbr.hytale.config.obj.DiscordBridgeConfiguration;
 import github.renderbr.hytale.registries.ProviderRegistry;
 
+/**
+ * Utility class for formatting and filtering chat messages.
+ */
 public final class ChatFormatter {
-    private ChatFormatter() {
-    }
+    private ChatFormatter() { }
 
+    /**
+     * Strips forbidden content (links, pings) from text based on current configuration.
+     * @param text The text to process.
+     * @return The sanitized text.
+     */
     public static String stripTextForForbiddenContent(String text) {
-        if (text == null) return null;
-
-        String newText = text;
-
-        var config = ProviderRegistry.discordBridgeConfigProvider.getConfig();
-
-        // remove Markdown hyperlinks: [Text](Url)
-        // Matches '[' then any non-bracket chars, then ']', then '(' any non-paren chars, then ')'
-        if (config.stripLinksInChat) {
-            newText = newText.replaceAll("\\[[^\\]]*\\]\\([^\\)]*\\)", "(stripped url)");
-        }
-
-        // remove Pings: <@...>, <@&...>, <@!...>, @everyone, @here
-        // Matches the @everyone/@here literals OR the <@ID> format
-        if (config.stripPingsInChat) {
-            newText = newText.replaceAll("@everyone|@here|<@(!|&)?\\d+>", "(stripped ping)");
-        }
-
-        return newText;
+        return stripTextForForbiddenContent(text, ProviderRegistry.discordBridgeConfigProvider.getConfig());
     }
 
+    /**
+     * Strips forbidden content using a specific configuration (useful for testing).
+     * @param text The text to process.
+     * @param config The configuration to use.
+     * @return The sanitized text.
+     */
+    public static String stripTextForForbiddenContent(String text, DiscordBridgeConfiguration config) {
+        if (text == null || config == null) return text;
+        String result = text;
+
+        if (Boolean.TRUE.equals(config.stripLinksInChat)) {
+            result = result.replaceAll("\\[[^\\]]*\\]\\([^\\)]*\\)", "(stripped url)");
+        }
+
+        if (Boolean.TRUE.equals(config.stripPingsInChat)) {
+            result = result.replaceAll("@everyone|@here|<@(!|&)?\\d+>", "(stripped ping)");
+        }
+
+        return result;
+    }
+
+    /**
+     * Recursively builds a plain text string from a FormattedMessage.
+     * @param msg The formatted message node.
+     * @return The combined plain text.
+     */
     public static String recursivelyBuildFormattedMessage(FormattedMessage msg) {
         if (msg == null) return "";
-
         StringBuilder sb = new StringBuilder();
-
-        // add this node's text if it exists
-        if (msg.rawText != null) {
-            sb.append(msg.rawText);
-        }
-
-        // recursively add all children
+        if (msg.rawText != null) sb.append(msg.rawText);
         if (msg.children != null) {
             for (FormattedMessage child : msg.children) {
                 sb.append(recursivelyBuildFormattedMessage(child));
             }
         }
-
         return sb.toString();
     }
 }
