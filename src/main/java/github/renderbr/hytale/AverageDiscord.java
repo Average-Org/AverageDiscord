@@ -5,18 +5,14 @@ import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
-import github.renderbr.hytale.commands.discord.CommandHandler;
 import github.renderbr.hytale.registries.CommandRegistry;
 import github.renderbr.hytale.registries.ListenerRegistry;
 import github.renderbr.hytale.registries.ProviderRegistry;
-import github.renderbr.hytale.services.DiscordBotService;
 import net.dv8tion.jda.internal.utils.JDALogger;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 import util.PathUtils;
-import org.slf4j.helpers.NOPLogger;
 
 import java.util.Optional;
-import java.util.logging.Level;
 
 public class AverageDiscord extends JavaPlugin {
 
@@ -41,7 +37,7 @@ public class AverageDiscord extends JavaPlugin {
         var token = Optional.ofNullable(System.getenv(DISCORD_BOT_TOKEN_ENV));
 
         if(token.isEmpty()){
-            token = Optional.of(ProviderRegistry.discordBridgeConfigProvider.config.botToken);
+            token = Optional.of(ProviderRegistry.discordBridgeConfigProvider.getConfig().botToken);
         }
 
         if (token.get().isBlank() || token.get().equals("bot_token_here")) {

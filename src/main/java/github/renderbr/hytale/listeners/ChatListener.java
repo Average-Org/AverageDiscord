@@ -4,10 +4,11 @@ import com.hypixel.hytale.event.EventPriority;
 import com.hypixel.hytale.event.EventRegistry;
 import com.hypixel.hytale.protocol.FormattedMessage;
 import com.hypixel.hytale.server.core.event.events.player.PlayerChatEvent;
-import github.renderbr.hytale.AverageDiscord;
 import github.renderbr.hytale.config.obj.ChannelOutputTypes;
-import github.renderbr.hytale.registries.ProviderRegistry;
 import github.renderbr.hytale.services.DiscordBotService;
+
+import static github.renderbr.hytale.models.chat.ChatFormatter.recursivelyBuildFormattedMessage;
+import static github.renderbr.hytale.models.chat.ChatFormatter.stripTextForForbiddenContent;
 
 public class ChatListener {
 
@@ -16,7 +17,7 @@ public class ChatListener {
     }
 
     public static void onPlayerChat(PlayerChatEvent event) {
-        if(!DiscordBotService.isRunning()) return;
+        if (!DiscordBotService.isRunning()) return;
         if (event.isCancelled()) return;
 
         var service = DiscordBotService.getInstance();
@@ -38,45 +39,5 @@ public class ChatListener {
 
         var strippedText = stripTextForForbiddenContent(builtMessage);
         service.sendMessageAppropriately(ChannelOutputTypes.CHAT, strippedText);
-    }
-
-    public static String stripTextForForbiddenContent(String text) {
-        if (text == null) return null;
-
-        String newText = text;
-
-        // remove Markdown hyperlinks: [Text](Url)
-        // Matches '[' then any non-bracket chars, then ']', then '(' any non-paren chars, then ')'
-        if (ProviderRegistry.discordBridgeConfigProvider.config.stripLinksInChat) {
-            newText = newText.replaceAll("\\[[^\\]]*\\]\\([^\\)]*\\)", "(stripped url)");
-        }
-
-        // remove Pings: <@...>, <@&...>, <@!...>, @everyone, @here
-        // Matches the @everyone/@here literals OR the <@ID> format
-        if(ProviderRegistry.discordBridgeConfigProvider.config.stripPingsInChat) {
-            newText = newText.replaceAll("@everyone|@here|<@(!|&)?\\d+>", "(stripped ping)");
-        }
-
-        return newText;
-    }
-
-    public static String recursivelyBuildFormattedMessage(FormattedMessage msg) {
-        if (msg == null) return "";
-
-        StringBuilder sb = new StringBuilder();
-
-        // add this node's text if it exists
-        if (msg.rawText != null) {
-            sb.append(msg.rawText);
-        }
-
-        // recursively add all children
-        if (msg.children != null) {
-            for (FormattedMessage child : msg.children) {
-                sb.append(recursivelyBuildFormattedMessage(child));
-            }
-        }
-
-        return sb.toString();
     }
 }

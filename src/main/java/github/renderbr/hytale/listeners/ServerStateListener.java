@@ -1,21 +1,23 @@
 package github.renderbr.hytale.listeners;
 
+import com.hypixel.hytale.common.util.java.ManifestUtil;
 import com.hypixel.hytale.event.EventRegistry;
-import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.logger.backend.HytaleLogFormatter;
 import com.hypixel.hytale.logger.backend.HytaleLoggerBackend;
 import com.hypixel.hytale.server.core.HytaleServer;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.event.events.BootEvent;
 import com.hypixel.hytale.server.core.event.events.ShutdownEvent;
-import com.hypixel.hytale.server.core.plugin.PluginState;
 import com.hypixel.hytale.server.core.universe.Universe;
 import github.renderbr.hytale.AverageDiscord;
 import github.renderbr.hytale.config.obj.ChannelOutputTypes;
 import github.renderbr.hytale.models.log.EventDrivenLogList;
 import github.renderbr.hytale.services.DiscordBotService;
-import jdk.jfr.Event;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 
+import java.awt.*;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.regex.Matcher;
@@ -42,7 +44,23 @@ public class ServerStateListener {
             HytaleLoggerBackend.subscribe(logOutput);
             logOutput.addListener(ServerStateListener::onLogReceived);
 
-            instance.sendMessageAppropriately(ChannelOutputTypes.SERVER_STATE, Message.translation("server.bot.averagediscord.serverstarted").getAnsiMessage());
+            EmbedBuilder eb = new EmbedBuilder();
+            eb.setTitle(Message.translation("server.bot.averagediscord.serverstarted").getAnsiMessage());
+            eb.setColor(Color.green);
+
+            eb.appendDescription(Message.translation("server.bot.averagediscord.serverstarted.desc1").getAnsiMessage());
+            eb.appendDescription("\n");
+            eb.appendDescription(Message.translation("server.bot.averagediscord.serverstarted.desc2").param("universe", Universe.get().getName()).getAnsiMessage());
+
+            var version = ManifestUtil.getImplementationVersion();
+            if (version != null) {
+                eb.appendDescription("\n");
+                eb.appendDescription(Message.translation("server.bot.averagediscord.serverstarted.desc3").param("version", ManifestUtil.getImplementationVersion()).getAnsiMessage());
+            }
+
+            eb.setTimestamp(java.time.Instant.now());
+
+            instance.sendMessageAppropriately(ChannelOutputTypes.SERVER_STATE, eb.build());
             instance.updateDiscordInformation();
         }).exceptionally(ex -> {
             AverageDiscord.LOGGER.at(Level.SEVERE).log(Message.translation("server.error.averagediscord.failedtostart").param("ex", ex.getLocalizedMessage()).getAnsiMessage());

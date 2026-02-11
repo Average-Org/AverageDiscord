@@ -5,8 +5,9 @@ import util.ConfigObjectProvider;
 
 public final class DiscordBridgeConfigurationProvider
         extends ConfigObjectProvider<DiscordBridgeConfiguration> {
+    private static final String DISCORD_BRIDGE_FILE = "discord_bridge.json";
 
     public DiscordBridgeConfigurationProvider() {
-        super("discord_bridge.json", DiscordBridgeConfiguration.class);
+        super(DISCORD_BRIDGE_FILE, DiscordBridgeConfiguration.class);
     }
 }

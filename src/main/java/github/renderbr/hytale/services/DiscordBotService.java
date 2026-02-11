@@ -91,7 +91,7 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
             channels.put(type, new CopyOnWriteArrayList<>());
         }
 
-        var configuration = ProviderRegistry.discordBridgeConfigProvider.config;
+        var configuration = ProviderRegistry.discordBridgeConfigProvider.getConfig();
 
         if (configuration.channels.length == 0) {
             throw new IllegalStateException(Message.translation("server.error.averagediscord.nochannels").getAnsiMessage());
@@ -175,7 +175,7 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
      * @return A new instance of JDA.
      */
     protected JDA buildNewInstance(String token) {
-        var configuration = ProviderRegistry.discordBridgeConfigProvider.config;
+        var configuration = ProviderRegistry.discordBridgeConfigProvider.getConfig();
 
         return JDABuilder
                 .createLight(token, INTENTS)
@@ -196,7 +196,7 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
     public void onMessageReceived(@NotNull MessageReceivedEvent event) {
         if (event.getAuthor().isBot() || event.getMessage().isWebhookMessage()) return;
 
-        var configuration = ProviderRegistry.discordBridgeConfigProvider.config;
+        var configuration = ProviderRegistry.discordBridgeConfigProvider.getConfig();
         var author = event.getAuthor();
         var message = event.getMessage();
 
@@ -219,7 +219,7 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
         var jda = getJdaInstance();
         if (jda == null || jda.getStatus() != JDA.Status.CONNECTED) return;
 
-        var config = ProviderRegistry.discordBridgeConfigProvider.config;
+        var config = ProviderRegistry.discordBridgeConfigProvider.getConfig();
         var presence = jda.getPresence();
 
         Activity status;

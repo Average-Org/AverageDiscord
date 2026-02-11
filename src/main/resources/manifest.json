@@ -1,7 +1,7 @@
 {
   "Group": "Average",
   "Name": "Discord",
-  "Version": "0.3.0",
+  "Version": "0.3.1",
   "Description": "A bridge between Hytale and Discord.",
   "Authors": [
     {
