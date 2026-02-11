@@ -31,6 +31,10 @@ class ServerStateListenerTest {
         assertEquals("\u001b[31mRed", ServerStateListener.repairAnsi("[31mRed"));
         // [1;33m should become \u001b[1;33m
         assertEquals("\u001b[1;33mBold Yellow", ServerStateListener.repairAnsi("[1;33mBold Yellow"));
+        // [38;5;46m should become \u001b[32m (mapped to basic Green for Discord)
+        assertEquals("\u001b[32mGreen", ServerStateListener.repairAnsi("[38;5;46mGreen"));
+        // RGB Red [38;2;255;0;0m should become \u001b[31m
+        assertEquals("\u001b[31mRed", ServerStateListener.repairAnsi("[38;2;255;0;0mRed"));
     }
 
     @Test
