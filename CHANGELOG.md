@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.4.0] - 2026-02-23
+
+### ✨ Added
+
+- **Discord Account Linking**
+  - New in-game command: `/discordlink` with aliases `linkdiscord` and `dlink`
+  - Username-based linking flow with DM confirmation via ✅ reaction
+  - New `UserLink` and `PendingLink` database models for persisted account links
+- **Permission-Aware `/execute`**
+  - Discord admins can still execute commands as server console
+  - Linked Discord users can execute commands using their linked Hytale account permissions
+  - Added safety responses for missing/invalid links and offline linked players
+- **Join/Leave Embeds**
+  - Player join/leave notifications now send as Discord embeds
+  - Uses linked Discord avatar thumbnail when a linked account exists
+
+### 🔄 Changed
+
+- **Plugin Versioning** - Bumped plugin and build version to `0.4.0`
+- **Status Command Localization** - Removed remaining hardcoded status command output strings
+- **Localization Coverage** - Added missing command and response translation keys project-wide
+
+### 🐛 Fixed
+
+- Fixed missing translation entries for link command and link workflow responses.
+- Fixed player join event handling to consistently resolve the correct player UUID for join/leave tracking.
+
 ## [0.3.1] - 2026-02-10
 
 ### ✨ Added

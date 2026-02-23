@@ -9,21 +9,24 @@ A Discord bridge plugin for Hytale servers. Forwards chat messages, player join/
 ## Features
 
 - Chat synchronization (in-game ↔ Discord)
-- Player join/leave notifications
+- Player join/leave embed notifications (with linked Discord avatar support)
 - Server startup/shutdown notifications
 - Player death notifications
 - Multi-channel message routing (assign different event types to different Discord channels)
 - Discord slash commands: `/players`, `/status`, `/execute`
+- Account linking command: `/discordlink` (with DM confirmation flow)
+- Permission-aware `/execute` using linked Hytale account permissions
 - Hot-reload configuration
 - Bot status updates with player count every 10 minutes
 - **Log Batching**: Buffers internal logs to prevent Discord rate limits
 - **Intelligent ANSI Handling**: Support for 256-color and RGB sequences in server logs
 
-## Latest Changes (0.3.1)
+## Latest Changes (0.4.0)
 
-- **Intelligent ANSI Translation**: Automatically maps complex 256-color and RGB sequences to Discord-compatible ANSI colors
-- **Log Batching**: Buffers and batches server logs to significantly reduce rate-limiting issues
-- **Performance Optimizations**: Improved player tracking and message routing for better server efficiency
+- **Discord Account Linking**: Added `/discordlink` with username + DM reaction confirmation and persistent DB-backed links
+- **Permission-Aware `/execute`**: Discord admins execute as console; linked users execute with their Hytale permissions
+- **Join/Leave Embeds**: Join and leave events now use embeds and show linked Discord avatars when available
+- **Localization Coverage**: Added missing translation keys and localized remaining hardcoded command responses
 
 ## Setup
 
@@ -163,11 +166,29 @@ Reloads the plugin configuration without requiring a server restart.
 **Permission:** Server admin/operator
 
 ### `/execute`
-Run server console commands from Discord. Requires Discord administrator role and must be run in a channel with the `all` output type configured.
+Run server commands from Discord in channels configured with the `all` output type.
+
+Execution behavior:
+- Discord administrators run commands as server console.
+- Non-admin Discord users can run commands as their linked Hytale account (must be linked and online).
 
 **Usage:** `/execute command:<command>`
 
 **Example:** `/execute command:say Hello from Discord!`
+
+### `/discordlink`
+Link or unlink your Discord account to your Hytale account.
+
+**Aliases:** `linkdiscord`, `dlink`
+
+**Usage:**
+- `/discordlink username <discord_username>`
+- `/discordlink unlink`
+
+**How linking works:**
+1. Run `/discordlink username <discord_username>` in-game.
+2. The bot sends a DM to that Discord user.
+3. React with ✅ in the DM to confirm and complete linking.
 
 ## Color Codes
 
