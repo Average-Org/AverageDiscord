@@ -2,6 +2,7 @@ package github.renderbr.hytale.registries;
 
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractCommandCollection;
 import github.renderbr.hytale.commands.DiscordBridgeCommand;
+import github.renderbr.hytale.commands.DiscordLinkCommand;
 
 import java.util.List;
 
@@ -9,7 +10,8 @@ public class CommandRegistry {
     private static com.hypixel.hytale.server.core.command.system.CommandRegistry registry;
 
     public static final List<AbstractCommandCollection> REGISTERED_COMMANDS = List.of(
-            new DiscordBridgeCommand()
+            new DiscordBridgeCommand(),
+            new DiscordLinkCommand()
     );
 
 

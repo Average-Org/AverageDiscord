@@ -5,11 +5,14 @@ import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
+import github.renderbr.hytale.db.models.UserLink;
 import github.renderbr.hytale.registries.CommandRegistry;
 import github.renderbr.hytale.registries.ListenerRegistry;
 import github.renderbr.hytale.registries.ProviderRegistry;
+import models.db.DatabaseService;
 import net.dv8tion.jda.internal.utils.JDALogger;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
+import util.DbUtils;
 import util.PathUtils;
 
 import java.util.Optional;
@@ -18,6 +21,8 @@ public class AverageDiscord extends JavaPlugin {
 
     public static final String DISCORD_BOT_TOKEN_ENV = "HYTALE_DISCORD_TOKEN";
     public static final HytaleLogger LOGGER = HytaleLogger.forEnclosingClass();
+    public static DatabaseService databaseService;
+
 
     public AverageDiscord(@NonNullDecl JavaPluginInit init) {
         super(init);
@@ -27,6 +32,8 @@ public class AverageDiscord extends JavaPlugin {
     protected void setup() {
         JDALogger.setFallbackLoggerEnabled(false);
         PathUtils.setModDirectoryName("AverageDiscord");
+        databaseService = DbUtils.initializeDatabase("average-discord",
+                UserLink.class);
 
         CommandRegistry.registerCommands(this.getCommandRegistry());
         ProviderRegistry.registerProviders();
@@ -45,5 +52,14 @@ public class AverageDiscord extends JavaPlugin {
         }
 
         return token.orElse("");
+    }
+
+    @Override
+    protected void shutdown() {
+        try {
+            databaseService.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

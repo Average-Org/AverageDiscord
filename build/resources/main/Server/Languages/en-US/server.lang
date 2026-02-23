@@ -2,6 +2,17 @@ commands.averagediscord.cmd.desc=The main command for AverageDiscord plugin.
 commands.averagediscord.reload.desc=Reloads the AverageDiscord plugin configuration.
 commands.averagediscord.reload.success=AverageDiscord configuration reloaded successfully.
 commands.averagediscord.reload.failure=AverageDiscord configuration could not be reloaded due to: {ex}
+commands.averagediscord.link.desc=Link your Hytale account to your Discord account.
+commands.averagediscord.link.unlink.desc=Remove your existing Discord account link.
+commands.averagediscord.link.unlink.nolink=You do not currently have a linked Discord account.
+commands.averagediscord.link.unlink.success=Your Discord account link has been removed.
+commands.averagediscord.link.unlink.failed=Failed to remove your Discord account link.
+commands.averagediscord.link.username.desc=Link your account by Discord username.
+commands.averagediscord.link.username.argdesc=The Discord username to link.
+commands.averagediscord.link.username.notfound=Could not find a Discord user named {username}.
+commands.averagediscord.link.username.confirm=Please confirm linking this Discord account to **{username}** by reacting with ✅.
+commands.averagediscord.link.username.checkdm=Check your Discord DMs to confirm linking with {username}.
+commands.averagediscord.link.username.discordnotrunning=Discord is not currently connected. Please try again later.
 
 # Bot Activity & Events
 activity.averagediscord.playercount=Player count: {players}
@@ -22,6 +33,13 @@ bot.averagediscord.serverstopped.desc1=The server is now offline and not accepti
 
 # Status Command
 bot.averagediscord.commands.status.desc=View real-time server performance and player vitals.
+bot.averagediscord.commands.status.initializing=Server is still initializing...
+bot.averagediscord.commands.status.field.vitals=Server Vitals
+bot.averagediscord.commands.status.field.players=Players
+bot.averagediscord.commands.status.field.players.none=No players online.
+bot.averagediscord.commands.status.field.players.online=Online ({players})
+bot.averagediscord.commands.status.footer.version=Hytale Version: {version}
+bot.averagediscord.commands.status.failed=Command failed: {error}
 
 # Players Online Command
 bot.averagediscord.commands.playersonline.desc=Shows the number of players currently online.
@@ -45,7 +63,13 @@ bot.averagediscord.commands.execute.desc=Execute a command on the server from Di
 bot.averagediscord.commands.execute.command=The command to execute on the server.
 bot.averagediscord.commands.execute.error=While running that command, we encountered an error: {error}
 bot.averagediscord.commands.execute.success=Command executed successfully!
+bot.averagediscord.commands.execute.forbidden=You are not allowed to use this command.
+bot.averagediscord.commands.execute.linkrequired=Link your Discord account with /discordlink username <name> to use this command with Hytale permissions.
+bot.averagediscord.commands.execute.linkinvalid=Your linked account is invalid. Please unlink and link again.
+bot.averagediscord.commands.execute.playeroffline=Your linked Hytale account must be online to execute commands with your permissions.
 
 error.averagediscord.tokennotfound=No Discord bot token found in environment variables or configuration. Please add it under the environment variable: HYTALE_DISCORD_TOKEN, or add it to the config under "bot_token'.
 error.averagediscord.nochannels=No channels have been configured, bot not starting.
 error.averagediscord.failedtostart=Your Discord bot failed to start: {ex}
+error.averagediscord.linkfailed=Failed to link your Discord account. Please try again.
+success.averagediscord.linksuccess=Discord account linked successfully.

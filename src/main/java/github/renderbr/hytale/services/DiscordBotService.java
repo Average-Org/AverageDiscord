@@ -5,6 +5,8 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import github.renderbr.hytale.AverageDiscord;
 import github.renderbr.hytale.commands.discord.CommandHandler;
 import github.renderbr.hytale.config.obj.ChannelOutputTypes;
+import github.renderbr.hytale.db.models.PendingLink;
+import github.renderbr.hytale.db.models.UserLink;
 import github.renderbr.hytale.registries.ProviderRegistry;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -13,7 +15,9 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.hooks.EventListener;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.GatewayIntent;
@@ -21,6 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import util.ColorUtils;
 
 import javax.annotation.Nonnull;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
@@ -32,13 +37,22 @@ import java.util.logging.Level;
  */
 public class DiscordBotService extends ListenerAdapter implements EventListener {
     private static final Set<GatewayIntent> INTENTS =
-            Collections.unmodifiableSet(EnumSet.of(GatewayIntent.GUILD_MESSAGES, GatewayIntent.MESSAGE_CONTENT));
+            Collections.unmodifiableSet(EnumSet.of(GatewayIntent.GUILD_MESSAGES,
+                    GatewayIntent.MESSAGE_CONTENT,
+                    GatewayIntent.GUILD_MEMBERS,
+                    GatewayIntent.DIRECT_MESSAGES,
+                    GatewayIntent.GUILD_MESSAGE_REACTIONS,
+                    GatewayIntent.DIRECT_MESSAGE_REACTIONS));
 
     private static final AtomicReference<DiscordBotService> instance = new AtomicReference<>();
+    public static final AtomicReference<Guild> GUILD = new AtomicReference<>();
     private static final Object INIT_LOCK = new Object();
+
+    public static final List<PendingLink> PENDING_LINKS = new ArrayList<>();
 
     /**
      * Initializes the Discord bot service.
+     *
      * @return A future that completes with the bot service instance.
      */
     public static CompletableFuture<DiscordBotService> init() {
@@ -62,6 +76,7 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
 
     /**
      * Restarts the Discord bot service.
+     *
      * @return A future that completes when the restart is finished.
      */
     public static CompletableFuture<DiscordBotService> restart() {
@@ -74,6 +89,7 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
 
     /**
      * Checks if the bot is currently running and connected to Discord.
+     *
      * @return true if connected.
      */
     public static boolean isRunning() {
@@ -103,17 +119,18 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
             throw new IllegalStateException("JDA failed to connect");
         }
 
-        Guild guild = null;
+        GUILD.set(null);
+
         for (var channelConfig : config.channels) {
             var textChannel = jdaInstance.getTextChannelById(channelConfig.channelId);
             if (textChannel == null) continue;
             for (var type : channelConfig.type) channels.get(type).add(textChannel);
-            if (guild == null) guild = textChannel.getGuild();
+            if (GUILD.get() == null) GUILD.set(textChannel.getGuild());
         }
 
         jdaInstance.addEventListener(this);
         CommandHandler cmdHandler = new CommandHandler();
-        if (guild != null) cmdHandler.registerCommands(guild);
+        if (GUILD.get() != null) cmdHandler.registerCommands(GUILD.get());
         jdaInstance.addEventListener(cmdHandler);
 
         scheduler.scheduleAtFixedRate(this::updateDiscordInformation, 2, 10, TimeUnit.MINUTES);
@@ -122,6 +139,7 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
 
     /**
      * Retrieves channels mapped to a specific output type, including 'ALL' channels where applicable.
+     *
      * @param type The output type.
      * @return A collection of appropriate message channels.
      */
@@ -134,21 +152,23 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
 
     /**
      * Routes a message to appropriate channels based on its type.
-     * @param type The type of message.
+     *
+     * @param type    The type of message.
      * @param message The raw message string.
-     * @param block Whether to wait for the message to be sent.
+     * @param block   Whether to wait for the message to be sent.
      */
     public void sendMessageAppropriately(@Nonnull ChannelOutputTypes type, @Nonnull String message, boolean block) {
         if (type == ChannelOutputTypes.INTERNAL_LOG) {
-            String clean = (message.startsWith("```ansi\n") && message.endsWith("```")) 
-                ? message.substring(8, message.length() - 3) : message;
+            String clean = (message.startsWith("```ansi\n") && message.endsWith("```"))
+                    ? message.substring(8, message.length() - 3) : message;
             logQueue.offer(clean);
             return;
         }
 
         getAppropriateChannels(type).forEach(channel -> {
             var action = channel.sendMessage(message);
-            if (block) action.complete(); else action.queue(null, e -> logError(channel.getId(), e));
+            if (block) action.complete();
+            else action.queue(null, e -> logError(channel.getId(), e));
         });
     }
 
@@ -158,7 +178,8 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
 
     /**
      * Sends an embed message to appropriate channels.
-     * @param type The type of message.
+     *
+     * @param type  The type of message.
      * @param embed The message embed.
      */
     public void sendMessageAppropriately(@Nonnull ChannelOutputTypes type, @Nonnull MessageEmbed embed) {
@@ -168,14 +189,21 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
     private void processLogQueue() {
         if (logQueue.isEmpty()) return;
         var logChannels = getAppropriateChannels(ChannelOutputTypes.INTERNAL_LOG);
-        if (logChannels.isEmpty()) { logQueue.clear(); return; }
+        if (logChannels.isEmpty()) {
+            logQueue.clear();
+            return;
+        }
 
         List<String> batch = new ArrayList<>();
         int length = 0;
         while (!logQueue.isEmpty() && batch.size() < 20) {
             String msg = logQueue.poll();
             if (msg == null) break;
-            if (length + msg.length() + 1 > 1900) { sendBatch(batch, logChannels); batch.clear(); length = 0; }
+            if (length + msg.length() + 1 > 1900) {
+                sendBatch(batch, logChannels);
+                batch.clear();
+                length = 0;
+            }
             batch.add(msg);
             length += msg.length() + 1;
         }
@@ -206,12 +234,53 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
     public void onMessageReceived(@NotNull MessageReceivedEvent event) {
         if (event.getAuthor().isBot() || event.getMessage().isWebhookMessage()) return;
         if (!channels.get(ChannelOutputTypes.CHAT).contains(event.getChannel()) &&
-            !channels.get(ChannelOutputTypes.ALL).contains(event.getChannel())) return;
+                !channels.get(ChannelOutputTypes.ALL).contains(event.getChannel())) return;
 
         var config = ProviderRegistry.discordBridgeConfigProvider.getConfig();
         Universe.get().sendMessage(Message.join(
                 ColorUtils.parseColorCodes(config.discordIngamePrefix),
                 Message.raw(event.getAuthor().getName() + ": " + event.getMessage().getContentDisplay())));
+    }
+
+    @Override
+    public void onMessageReactionAdd(@NotNull MessageReactionAddEvent event) {
+        if (!event.getEmoji().equals(Emoji.fromUnicode("✅"))) {
+            return;
+        }
+
+        if (event.getChannelType().isGuild()) {
+            return;
+        }
+
+        var user = event.getUser();
+        if (user == null || user.isBot()) {
+            return;
+        }
+
+        // does the user have a pending link?
+        long userId = event.getUserIdLong();
+
+        Optional<PendingLink> pendingLinkOpt = PENDING_LINKS.stream()
+                .filter(link -> link.discordUserId() == userId)
+                .findFirst();
+
+        if (pendingLinkOpt.isEmpty()) {
+            return; // No link pending for this user
+        }
+
+        PendingLink pendingLink = pendingLinkOpt.get();
+        UserLink userLink = new UserLink(user.getId(), pendingLink.hytalePlayerId().toString());
+        try {
+            AverageDiscord.databaseService.getTable(UserLink.class).createOrUpdate(userLink);
+            AverageDiscord.databaseService.save();
+            event.getChannel().sendMessage(Message.translation("server.success.averagediscord.linksuccess").getAnsiMessage()).queue();
+        } catch (SQLException e) {
+            event.getChannel().sendMessage(Message.translation("server.error.averagediscord.linkfailed").getAnsiMessage()).queue();
+            AverageDiscord.LOGGER.at(Level.SEVERE).log("Failed to link user " + user.getId(), e);
+            return;
+        }
+
+        PENDING_LINKS.remove(pendingLink);
     }
 
     /**
@@ -220,11 +289,11 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
     public void updateDiscordInformation() {
         if (!isRunning()) return;
         var config = ProviderRegistry.discordBridgeConfigProvider.getConfig();
-        var status = config.showActivePlayerCount 
-            ? Activity.customStatus((config.botActivityMessage.isEmpty() ? "" : config.botActivityMessage + " | ") + 
+        var status = config.showActivePlayerCount
+                ? Activity.customStatus((config.botActivityMessage.isEmpty() ? "" : config.botActivityMessage + " | ") +
                 Message.translation("server.activity.averagediscord.playercount")
-                       .param("players", Universe.get().getPlayerCount()).getAnsiMessage())
-            : Activity.customStatus(config.botActivityMessage);
+                        .param("players", Universe.get().getPlayerCount()).getAnsiMessage())
+                : Activity.customStatus(config.botActivityMessage);
 
         jdaInstance.getPresence().setActivity(status);
         updateChannelDescriptionStatuses();
@@ -236,8 +305,8 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
 
         getAppropriateChannels(ChannelOutputTypes.DESC_STATUS).forEach(channel -> {
             if (channel instanceof TextChannel tc && !topic.equals(tc.getTopic())) {
-                tc.getManager().setTopic(topic).queue(null, e -> 
-                    AverageDiscord.LOGGER.at(Level.WARNING).log("Failed to update topic for " + tc.getId(), e));
+                tc.getManager().setTopic(topic).queue(null, e ->
+                        AverageDiscord.LOGGER.at(Level.WARNING).log("Failed to update topic for " + tc.getId(), e));
             }
         });
     }
@@ -248,12 +317,20 @@ public class DiscordBotService extends ListenerAdapter implements EventListener 
     public void stop() {
         processLogQueue();
         scheduler.shutdown();
-        try { if (!scheduler.awaitTermination(3, TimeUnit.SECONDS)) scheduler.shutdownNow(); } 
-        catch (InterruptedException e) { scheduler.shutdownNow(); Thread.currentThread().interrupt(); }
+        try {
+            if (!scheduler.awaitTermination(3, TimeUnit.SECONDS)) scheduler.shutdownNow();
+        } catch (InterruptedException e) {
+            scheduler.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
 
         jdaInstance.shutdown();
-        try { if (!jdaInstance.awaitShutdown(Duration.ofSeconds(5))) jdaInstance.shutdownNow(); } 
-        catch (InterruptedException e) { jdaInstance.shutdownNow(); Thread.currentThread().interrupt(); }
+        try {
+            if (!jdaInstance.awaitShutdown(Duration.ofSeconds(5))) jdaInstance.shutdownNow();
+        } catch (InterruptedException e) {
+            jdaInstance.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
         instance.set(null);
     }
 }

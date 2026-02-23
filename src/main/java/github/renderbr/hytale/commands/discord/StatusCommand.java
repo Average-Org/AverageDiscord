@@ -26,7 +26,7 @@ public class StatusCommand implements IDiscordCommand {
             var server = HytaleServer.get();
 
             if (universe == null || universe.getDefaultWorld() == null) {
-                event.getHook().sendMessage("Server is still initializing...").queue();
+                event.getHook().sendMessage(Message.translation("server.bot.averagediscord.commands.status.initializing").getAnsiMessage()).queue();
                 return;
             }
 
@@ -60,29 +60,47 @@ public class StatusCommand implements IDiscordCommand {
             String vitals = String.format("**TPS:** %.2f\n**MSPT:** %.1fms\n**Memory:** %dMB / %dMB",
                     tps, (avgTickNanos / 1_000_000.0), usedMem, maxMem);
 
-            embed.addField("Server Vitals", vitals, false);
+            embed.addField(Message.translation("server.bot.averagediscord.commands.status.field.vitals").getAnsiMessage(), vitals, false);
 
             // Player section
             var players = universe.getPlayers();
             if (players.isEmpty()) {
-                embed.addField("Players", "No players online.", false);
+                embed.addField(
+                    Message.translation("server.bot.averagediscord.commands.status.field.players").getAnsiMessage(),
+                    Message.translation("server.bot.averagediscord.commands.status.field.players.none").getAnsiMessage(),
+                    false
+                );
             } else {
                 String names = players.stream()
                         .map(PlayerRef::getUsername)
                         .limit(15)
                         .collect(Collectors.joining(", "));
                 if (players.size() > 15) names += "...";
-                embed.addField("Online (" + players.size() + ")", names, false);
+                embed.addField(
+                    Message.translation("server.bot.averagediscord.commands.status.field.players.online")
+                        .param("players", players.size())
+                        .getAnsiMessage(),
+                    names,
+                    false
+                );
             }
 
-            embed.setFooter("Hytale Version: " + ServerManager.MANIFEST.getVersion().toString());
+                embed.setFooter(
+                    Message.translation("server.bot.averagediscord.commands.status.footer.version")
+                        .param("version", ServerManager.MANIFEST.getVersion().toString())
+                        .getAnsiMessage()
+                );
 
             // 4. Complete the interaction
             event.getHook().sendMessageEmbeds(embed.build()).queue();
 
         } catch (Exception e) {
             e.printStackTrace(); // Log it to your Hytale console
-            event.getHook().sendMessage("Command failed: " + e.getMessage()).queue();
+            event.getHook().sendMessage(
+                    Message.translation("server.bot.averagediscord.commands.status.failed")
+                            .param("error", e.getMessage())
+                            .getAnsiMessage()
+            ).queue();
         }
     }
 

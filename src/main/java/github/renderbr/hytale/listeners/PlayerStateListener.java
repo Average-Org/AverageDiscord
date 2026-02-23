@@ -7,10 +7,16 @@ import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import github.renderbr.hytale.AverageDiscord;
 import github.renderbr.hytale.config.obj.ChannelOutputTypes;
+import github.renderbr.hytale.db.models.UserLink;
 import github.renderbr.hytale.models.playerdeath.ADPlayerDeathSystem;
 import github.renderbr.hytale.services.DiscordBotService;
+import net.dv8tion.jda.api.EmbedBuilder;
 
+import java.awt.*;
+import java.sql.SQLException;
+import java.time.Instant;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -38,17 +44,23 @@ public class PlayerStateListener {
      * @param event The player ready event.
      */
     public static void onPlayerJoin(PlayerReadyEvent event) {
-        if (!DiscordBotService.isRunning() || !ONLINE_PLAYERS.add(Objects.requireNonNull(event.getPlayerRef()
+        var playerRef = Objects.requireNonNull(event.getPlayerRef()
             .getStore()
-            .getComponent(event.getPlayerRef(), PlayerRef.getComponentType()))
-            .getUuid())) return;
+            .getComponent(event.getPlayerRef(), PlayerRef.getComponentType()));
+        var playerUuid = playerRef.getUuid();
+
+        if (!DiscordBotService.isRunning() || !ONLINE_PLAYERS.add(playerUuid)) return;
 
         var service = DiscordBotService.getInstance();
         service.updateDiscordInformation();
-        service.sendMessageAppropriately(
-            ChannelOutputTypes.JOIN_LEAVE,
-            Message.translation("server.bot.averagediscord.playerjoined")
-                   .param("player", event.getPlayer().getDisplayName()).getAnsiMessage()
+        service.sendMessageAppropriately(ChannelOutputTypes.JOIN_LEAVE,
+            buildPlayerStateEmbed(
+                event.getPlayer().getDisplayName(),
+                Message.translation("server.bot.averagediscord.playerjoined")
+                    .param("player", event.getPlayer().getDisplayName()).getAnsiMessage(),
+                Color.GREEN,
+                playerUuid
+            )
         );
     }
 
@@ -63,10 +75,49 @@ public class PlayerStateListener {
 
         var service = DiscordBotService.getInstance();
         service.updateDiscordInformation();
-        service.sendMessageAppropriately(
-            ChannelOutputTypes.JOIN_LEAVE,
-            Message.translation("server.bot.averagediscord.playerleft")
-                   .param("player", event.getPlayerRef().getUsername()).getAnsiMessage()
+        service.sendMessageAppropriately(ChannelOutputTypes.JOIN_LEAVE,
+            buildPlayerStateEmbed(
+                event.getPlayerRef().getUsername(),
+                Message.translation("server.bot.averagediscord.playerleft")
+                    .param("player", event.getPlayerRef().getUsername()).getAnsiMessage(),
+                Color.RED,
+                event.getPlayerRef().getUuid()
+            )
         );
+    }
+
+    private static net.dv8tion.jda.api.entities.MessageEmbed buildPlayerStateEmbed(String playerName, String description, Color color, UUID hytaleUserId) {
+        EmbedBuilder embedBuilder = new EmbedBuilder()
+            .setAuthor(playerName)
+            .setDescription(description)
+            .setColor(color)
+            .setTimestamp(Instant.now());
+
+        String avatarUrl = getLinkedDiscordAvatarUrl(hytaleUserId);
+        if (avatarUrl != null && !avatarUrl.isBlank()) {
+            embedBuilder.setThumbnail(avatarUrl);
+        }
+
+        return embedBuilder.build();
+    }
+
+    private static String getLinkedDiscordAvatarUrl(UUID hytaleUserId) {
+        try {
+            UserLink link = AverageDiscord.databaseService
+                .getTable(UserLink.class)
+                .queryBuilder()
+                .where()
+                .eq("hytaleUserId", hytaleUserId.toString())
+                .queryForFirst();
+
+            if (link == null || link.discordUserId == null || link.discordUserId.isBlank()) {
+                return null;
+            }
+
+            var discordUser = DiscordBotService.getInstance().getJdaInstance().retrieveUserById(link.discordUserId).complete();
+            return discordUser != null ? discordUser.getEffectiveAvatarUrl() : null;
+        } catch (SQLException | RuntimeException ignored) {
+            return null;
+        }
     }
 }
