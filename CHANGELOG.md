@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.2] - 2026-05-26
+- **Updated Hytale** to Patch 5
+- Fixed a bug where plugin attempted to deregister null reference for logOutput, was null due to Hytale disposing of object (race condition). This has been resolved.
+
+## [0.4.1] - 2026-03-26
+
+- **Updated Hytale** to Patch 4
+
 ## [0.4.0] - 2026-02-23
 
 ### ✨ Added

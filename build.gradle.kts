@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "github.renderbr.hytale"
-version = "0.4.0"
+version = "0.4.2"
 
 java {
     toolchain {
@@ -23,7 +23,7 @@ dependencies {
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    compileOnly("com.hypixel.hytale:Server:2026.02.19-1a311a592")
+    compileOnly("com.hypixel.hytale:Server:0.5.1")
 
     implementation(files("libs/AverageHytaleCore.jar"))
     implementation("net.dv8tion:JDA:6.3.0") {

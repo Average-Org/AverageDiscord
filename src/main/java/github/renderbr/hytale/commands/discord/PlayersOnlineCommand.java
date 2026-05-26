@@ -19,8 +19,10 @@ public class PlayersOnlineCommand implements IDiscordCommand {
 
         String msg;
         if (players.size() == 1) {
+            var player = players.stream().findFirst().get();
+
             msg = Message.translation("server.bot.averagediscord.commands.playersonline.oneplayer")
-                    .param("player", players.getFirst().getUsername()).getAnsiMessage();
+                    .param("player", player.getUsername()).getAnsiMessage();
         } else {
 
             msg = Message.translation("server.bot.averagediscord.commands.playersonline.players")

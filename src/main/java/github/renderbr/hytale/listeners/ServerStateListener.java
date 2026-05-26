@@ -80,13 +80,16 @@ public class ServerStateListener {
 
         DiscordBotService.getInstance().sendMessageAppropriately(ChannelOutputTypes.SERVER_STATE, eb.build());
 
-        logOutput.removeListener(ServerStateListener::onLogReceived);
-        HytaleLoggerBackend.unsubscribe(logOutput);
+        if (logOutput != null) {
+            logOutput.removeListener(ServerStateListener::onLogReceived);
+            HytaleLoggerBackend.unsubscribe(logOutput);
+        }
         DiscordBotService.getInstance().stop();
     }
 
     public static void onLogReceived(LogRecord record) {
-        if (isShuttingDown || formatter == null || !DiscordBotService.isRunning() || HytaleServer.get().isShuttingDown()) return;
+        if (isShuttingDown || formatter == null || !DiscordBotService.isRunning() || HytaleServer.get().isShuttingDown())
+            return;
 
         try {
             String formatted = formatter.format(record).trim();
@@ -97,9 +100,10 @@ public class ServerStateListener {
             }
 
             DiscordBotService.getInstance().sendMessageAppropriately(
-                ChannelOutputTypes.INTERNAL_LOG, 
-                "```ansi\n" + AnsiHandler.repair(formatted) + "```"
+                    ChannelOutputTypes.INTERNAL_LOG,
+                    "```ansi\n" + AnsiHandler.repair(formatted) + "```"
             );
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 }

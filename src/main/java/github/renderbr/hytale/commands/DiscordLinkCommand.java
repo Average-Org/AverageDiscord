@@ -92,7 +92,7 @@ public class DiscordLinkCommand extends AbstractCommandCollection {
                     return;
                 }
 
-                String hytalePlayerName = commandContext.sender().getDisplayName();
+                String hytalePlayerName = commandContext.sender().getUsername();
                 member.getUser().openPrivateChannel().queue(privateChannel -> {
                     privateChannel.sendMessage(Message.translation("server.commands.averagediscord.link.username.confirm").param("username", hytalePlayerName).getAnsiMessage()).queue((message) -> {
                         message.addReaction(Emoji.fromUnicode("✅")).queue();

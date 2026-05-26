@@ -19,10 +19,8 @@ public class EventDrivenLogList extends CopyOnWriteArrayList<LogRecord> {
     @Override
     public boolean add(LogRecord record) {
         boolean added = super.add(record);
-        if(added){
-            for(LogEventListener listener: listeners){
-                listener.onLogReceived(record);
-            }
+        for (LogEventListener listener : listeners) {
+            listener.onLogReceived(record);
         }
         return added;
     }
